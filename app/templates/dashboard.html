@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-top-grid">
+  <div class="info-card">
+    <div class="card-label">Latest Keyword Run</div>
+    <h3>{{ format_display_datetime(latest_keyword_run.created_at) if latest_keyword_run else "-" }}</h3>
+    <p>가장 최근 키워드 분석 실행 시각</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Keyword Total Articles</div>
+    <h3>{{ latest_keyword_run.total_articles if latest_keyword_run else 0 }}</h3>
+    <p>가장 최근 키워드 분석 기준 기사 수</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Keyword Flagged</div>
+    <h3>{{ latest_keyword_run.flagged_articles if latest_keyword_run else 0 }}</h3>
+    <p>가장 최근 키워드 분석 기준 검수 필요 기사 수</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Keyword Error</div>
+    <h3>{{ latest_keyword_run.error_articles if latest_keyword_run else 0 }}</h3>
+    <p>가장 최근 키워드 분석 기준 오류 기사 수</p>
+  </div>
+</div>
+
+<div class="dashboard-top-grid dashboard-second-grid">
+  <div class="info-card">
+    <div class="card-label">Latest Media Run</div>
+    <h3>{{ format_display_datetime(latest_media_run.created_at) if latest_media_run else "-" }}</h3>
+    <p>가장 최근 이미지 분석 실행 시각</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Media Total Links</div>
+    <h3>{{ latest_media_run.total_links if latest_media_run else 0 }}</h3>
+    <p>가장 최근 이미지 분석 기준 입력 링크 수</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Media Total Items</div>
+    <h3>{{ latest_media_run.total_media_count if latest_media_run else 0 }}</h3>
+    <p>가장 최근 이미지 분석 기준 검출 media 수</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Media Error</div>
+    <h3>{{ latest_media_run.error_count if latest_media_run else 0 }}</h3>
+    <p>가장 최근 이미지 분석 기준 오류 수</p>
+  </div>
+</div>
+
+<div class="dashboard-top-grid dashboard-second-grid">
+  <div class="info-card">
+    <div class="card-label">Bookmarks Total</div>
+    <h3>{{ total_bookmarks or 0 }}</h3>
+    <p>공용 북마크 전체 수</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Bookmarks Yellow</div>
+    <h3>{{ yellow_bookmarks or 0 }}</h3>
+    <p>Yellow 중요도 북마크 수</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Bookmarks Deep Red</div>
+    <h3>{{ deep_red_bookmarks or 0 }}</h3>
+    <p>Deep Red 중요도 북마크 수</p>
+  </div>
+
+  <div class="info-card">
+    <div class="card-label">Bookmarks Recent</div>
+    <h3>{{ recent_bookmarks|length if recent_bookmarks else 0 }}</h3>
+    <p>최근 표시 중인 북마크 수</p>
+  </div>
+</div>
+
+<section class="info-card">
+  <div class="card-label">Latest Banner / KV Run</div>
+  <h3>Most Recent Banner / KV Screening</h3>
+
+  {% if latest_banner_summary and latest_banner_summary.has_run %}
+    <div class="meta-grid">
+      <div class="meta-box">
+        <span>Run At</span>
+        <strong>{{ latest_banner_summary.run_at }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Run Type</span>
+        <strong>{{ latest_banner_summary.run_type_label }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Scope</span>
+        <strong>{{ latest_banner_summary.scope_label }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Target Count</span>
+        <strong>{{ latest_banner_summary.target_count }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Changed Targets</span>
+        <strong>{{ latest_banner_summary.changed_targets }}</strong>
+      </div>
+    </div>
+
+    {% if latest_banner_summary.kv_stats %}
+      <div class="detail-section">
+        <h4>KV Summary</h4>
+        <div class="meta-grid">
+          <div class="meta-box">
+            <span>Changed Slots</span>
+            <strong>{{ latest_banner_summary.kv_stats.changed_slots }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Image Changed</span>
+            <strong>{{ latest_banner_summary.kv_stats.image_changed }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Landing Changed</span>
+            <strong>{{ latest_banner_summary.kv_stats.landing_changed }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Title Changed</span>
+            <strong>{{ latest_banner_summary.kv_stats.title_changed }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Error Count</span>
+            <strong>{{ latest_banner_summary.kv_stats.error_count }}</strong>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if latest_banner_summary.banner_stats %}
+      <div class="detail-section">
+        <h4>Banner Summary</h4>
+        <div class="meta-grid">
+          <div class="meta-box">
+            <span>Changed Slots</span>
+            <strong>{{ latest_banner_summary.banner_stats.changed_slots }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Image Changed</span>
+            <strong>{{ latest_banner_summary.banner_stats.image_changed }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Landing Changed</span>
+            <strong>{{ latest_banner_summary.banner_stats.landing_changed }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Title Changed</span>
+            <strong>{{ latest_banner_summary.banner_stats.title_changed }}</strong>
+          </div>
+          <div class="meta-box">
+            <span>Error Count</span>
+            <strong>{{ latest_banner_summary.banner_stats.error_count }}</strong>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    <p class="empty-note">최근 배너 / KV 검사 결과가 없습니다.</p>
+  {% endif %}
+</section>
+
+<div class="dashboard-main-grid">
+  <section class="info-card">
+    <div class="card-label">Latest Keyword Articles</div>
+    <h3>Latest Keyword Analysis Result</h3>
+
+    {% if latest_keyword_articles %}
+      <div class="dashboard-article-list">
+        {% for item in latest_keyword_articles %}
+          <div class="dashboard-article-card">
+            <div class="dashboard-article-head">
+              <div>
+                <strong>{{ item.title or "-" }}</strong>
+                <p>
+                  {% if item.short_url %}
+                    <a href="{{ item.short_url }}" target="_blank" rel="noopener noreferrer" class="table-link">
+                      {{ item.short_url }}
+                    </a>
+                  {% else %}
+                    -
+                  {% endif %}
+                </p>
+              </div>
+              <div>
+                {% if item.status == "flagged" %}
+                  <span class="status-pill status-flagged">Flagged</span>
+                {% elif item.status == "error" %}
+                  <span class="status-pill status-error">Error</span>
+                {% else %}
+                  <span class="status-pill status-clean">Clean</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="dashboard-article-meta">
+              <span>Forbidden {{ item.forbidden_found_count or 0 }}</span>
+              <span>Required Missing {{ item.required_missing_count or 0 }}</span>
+              <span>{{ format_display_datetime(item.created_at) }}</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 기사 결과가 없습니다.</p>
+    {% endif %}
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Latest Media Items</div>
+    <h3>Latest Image Size Analysis Result</h3>
+
+    {% if latest_media_items %}
+      <div class="dashboard-media-list">
+        {% for item in latest_media_items %}
+          <div class="dashboard-media-card">
+            <div class="dashboard-media-preview">
+              {% if item.preview_url and item.media_type in ["image", "gif"] %}
+                <img src="{{ item.preview_url }}" alt="preview" class="media-preview-thumb" />
+              {% elif item.preview_url and item.media_type == "mp4" %}
+                <video class="media-preview-thumb video-preview" muted playsinline preload="metadata" controls>
+                  <source src="{{ item.preview_url }}" type="video/mp4" />
+                </video>
+              {% elif item.preview_url and item.media_type == "embedded_video" %}
+                <a href="{{ item.preview_url }}" target="_blank" rel="noopener noreferrer" class="embedded-preview-link">
+                  Open Embedded Video
+                </a>
+              {% else %}
+                <div class="dashboard-preview-empty">-</div>
+              {% endif %}
+            </div>
+
+            <div class="dashboard-media-body">
+              <strong>{{ item.article_title or "-" }}</strong>
+              <p>{{ item.filename or "-" }}</p>
+              <div class="dashboard-article-meta">
+                <span>{{ item.media_type or "-" }}</span>
+                <span>{{ item.width if item.width is not none else "-" }} × {{ item.height if item.height is not none else "-" }}</span>
+                <span>{{ item.size_display or "-" }}</span>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 media 결과가 없습니다.</p>
+    {% endif %}
+  </section>
+</div>
+
+<section class="info-card">
+  <div class="card-label">Recent Bookmarks</div>
+  <h3>Latest Shared Bookmark Activity</h3>
+
+  {% if recent_bookmarks %}
+    <div class="dashboard-article-list">
+      {% for item in recent_bookmarks %}
+        <div class="dashboard-article-card">
+          <div class="dashboard-article-head">
+            <div>
+              <strong>{{ item.title or "-" }}</strong>
+              <p>{{ item.target_type_label or "-" }}</p>
+            </div>
+            <div>
+              <span class="bookmark-btn level-{{ item.bookmark_level or 0 }}">★</span>
+            </div>
+          </div>
+
+          <div class="dashboard-article-meta">
+            <span>{{ item.note or "-" }}</span>
+            <span>{{ item.display_updated_at }}</span>
+            <span>{{ item.updated_by or "-" }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-note">최근 북마크가 없습니다.</p>
+  {% endif %}
+</section>
+{% endblock %}

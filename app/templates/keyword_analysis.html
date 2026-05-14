@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="analysis-layout">
+  <section class="info-card">
+    <div class="card-label">Input</div>
+    <h3>Short Link Batch</h3>
+    <p class="section-desc">
+      short link를 한 줄에 하나씩 입력한 뒤 Analyze를 누르면 금지어 / 필수어 검사를 실행합니다.
+      마지막 입력값과 결과는 저장되어 다시 들어와도 유지됩니다.
+    </p>
+
+    <div class="analysis-input-wrap">
+      <textarea id="analysisInput" class="big-textarea" placeholder="https://bit.ly/xxxxxx&#10;https://bit.ly/yyyyyy">{% if latest_run %}{{ latest_run.input_text }}{% endif %}</textarea>
+    </div>
+
+    <div class="analysis-action-row">
+      <button id="analysisRunBtn" class="btn-metallic btn-metallic-lg" type="button">Analyze</button>
+    </div>
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Latest Run</div>
+    <h3>Saved Input & Summary</h3>
+
+    {% if latest_run %}
+      <div class="meta-grid">
+        <div class="meta-box">
+          <span>Total Articles</span>
+          <strong>{{ latest_run.total_articles }}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Flagged</span>
+          <strong>{{ latest_run.flagged_articles }}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Missing Required</span>
+          <strong>{{ latest_run.missing_required_articles }}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Error</span>
+          <strong>{{ latest_run.error_articles }}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Created At</span>
+          <strong>{{ format_display_datetime(latest_run.created_at) }}</strong>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 실행 이력이 없습니다.</p>
+    {% endif %}
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Latest Articles</div>
+    <h3>Last Result Snapshot</h3>
+
+    {% if latest_articles %}
+      <div class="table-wrap-dark">
+        <table class="result-table history-table">
+          <thead>
+            <tr>
+              <th>Bookmark</th>
+              <th>Short URL</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Forbidden</th>
+              <th>Required Missing</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in latest_articles %}
+              <tr class="result-row-clickable"
+                  data-article-key="{{ item.article_key }}"
+                  data-short-url="{{ item.short_url | e }}"
+                  data-long-url="{{ item.long_url | e }}"
+                  data-title="{{ item.title | e }}"
+                  data-status="{{ item.status | e }}"
+                  data-forbidden-count="{{ item.forbidden_found_count }}"
+                  data-required-count="{{ item.required_missing_count }}"
+                  data-published-at-raw="{{ item.published_at_raw | e }}"
+                  data-published-at-normalized="{{ item.published_at_normalized | e }}"
+                  data-forbidden='{{ item.forbidden_findings | tojson | safe }}'
+                  data-required='{{ item.required_missing | tojson | safe }}'
+                  data-error="{{ item.error | e }}">
+                <td>
+                  <button
+                    type="button"
+                    class="bookmark-btn level-{{ item.bookmark_level or 0 }}"
+                    data-target-type="article"
+                    data-target-key="article::{{ item.article_key }}"
+                    data-short-url="{{ item.short_url or '' }}"
+                    data-title="{{ item.title or '' }}"
+                    title="공용 북마크"
+                  >★</button>
+                </td>
+                <td>{{ item.short_url or "-" }}</td>
+                <td>{{ item.title or "-" }}</td>
+                <td>
+                  {% if item.status == "flagged" %}
+                    <span class="status-pill status-flagged">Flagged</span>
+                  {% elif item.status == "error" %}
+                    <span class="status-pill status-error">Error</span>
+                  {% else %}
+                    <span class="status-pill status-clean">Clean</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.forbidden_found_count or 0 }}</td>
+                <td>{{ item.required_missing_count or 0 }}</td>
+                <td>{{ format_display_datetime(item.created_at) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="articleDetailPanel" class="detail-panel hidden">
+        <div class="detail-panel-head">
+          <div>
+            <p class="detail-eyebrow">ARTICLE DETAIL</p>
+            <h3 id="detailTitle">Select an article</h3>
+          </div>
+        </div>
+
+        <div class="detail-meta-grid">
+          <div class="detail-meta-box">
+            <span>Short URL</span>
+            <strong id="detailShortUrl">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Long URL</span>
+            <strong id="detailLongUrl">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Country Code</span>
+            <strong id="detailCountryCode">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Published Date</span>
+            <strong id="detailPublishedAt">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Status</span>
+            <strong id="detailStatus">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Forbidden Count</span>
+            <strong id="detailForbiddenCount">0</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Required Missing</span>
+            <strong id="detailRequiredCount">0</strong>
+          </div>
+        </div>
+
+        <div id="detailErrorBox" class="detail-error-box hidden"></div>
+
+        <div class="detail-section">
+          <h4>Forbidden Findings</h4>
+          <div id="detailForbiddenList" class="detail-stack"></div>
+        </div>
+
+        <div class="detail-section">
+          <h4>Missing Required Words</h4>
+          <div id="detailRequiredList" class="detail-stack"></div>
+        </div>
+      </div>
+
+      <div id="bookmarkNoteModal" class="history-modal hidden">
+        <div class="history-modal-backdrop" id="bookmarkNoteModalBackdrop"></div>
+        <div class="history-modal-dialog bookmark-note-dialog">
+          <button type="button" class="history-modal-close" id="bookmarkNoteModalClose">×</button>
+
+          <div class="detail-panel-head history-modal-head">
+            <p class="detail-eyebrow">BOOKMARK NOTE</p>
+            <h3 id="bookmarkNoteTitle">Bookmark Setting</h3>
+          </div>
+
+          <div class="bookmark-level-row">
+            <button type="button" class="bookmark-level-select level-1" data-level="1">Yellow</button>
+            <button type="button" class="bookmark-level-select level-2" data-level="2">Deep Red</button>
+            <button type="button" class="bookmark-level-select level-0" data-level="0">Clear</button>
+          </div>
+
+          <div class="monitor-filter-box">
+            <label for="bookmarkNoteInput">Comment</label>
+            <textarea id="bookmarkNoteInput" class="big-textarea bookmark-note-textarea" placeholder="Add note..."></textarea>
+          </div>
+
+          <div class="analysis-action-row">
+            <button id="bookmarkSaveBtn" class="btn-metallic btn-metallic-md" type="button">Save</button>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 기사 결과가 없습니다.</p>
+    {% endif %}
+  </section>
+</div>
+
+<script>
+  let currentBookmarkButton = null;
+  let currentBookmarkLevel = 0;
+
+  function escapeHtml(value) {
+    if (value === null || value === undefined) return "";
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function extractCountryCodeFromLongUrl(longUrl) {
+    if (!longUrl) return "-";
+
+    try {
+      const url = new URL(longUrl);
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts.length === 0) return "-";
+      return parts[0].toUpperCase();
+    } catch (e) {
+      return "-";
+    }
+  }
+
+  function getPublishedDate(rawValue, normalizedValue) {
+    if (rawValue && rawValue !== "None") return rawValue;
+    if (normalizedValue && normalizedValue !== "None") return normalizedValue;
+    return "-";
+  }
+
+  function highlightKeyword(text, keyword, matchRule) {
+    if (!text || !keyword) return escapeHtml(text || "");
+
+    const escapedText = escapeHtml(text);
+    let target = keyword;
+
+    if (matchRule === "all_upper") {
+      target = keyword.toUpperCase();
+    } else if (matchRule === "all_lower") {
+      target = keyword.toLowerCase();
+    } else if (matchRule === "initial_cap") {
+      target = keyword.charAt(0).toUpperCase() + keyword.slice(1).toLowerCase();
+    }
+
+    const escapedKeyword = target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const flags = matchRule === "case_insensitive" ? "gi" : "g";
+    const regex = new RegExp(`(${escapedKeyword})`, flags);
+
+    return escapedText.replace(regex, "<mark>$1</mark>");
+  }
+
+  function renderForbiddenFindings(findings) {
+    const target = document.getElementById("detailForbiddenList");
+
+    if (!findings || findings.length === 0) {
+      target.innerHTML = `<p class="empty-note">금지어 검출 결과가 없습니다.</p>`;
+      return;
+    }
+
+    target.innerHTML = findings.map(item => {
+      const sentences = item.body_occurrence_sentences || [];
+
+      return `
+        <div class="finding-card">
+          <div class="finding-head">
+            <strong>${escapeHtml(item.word)}</strong>
+            <span>${escapeHtml(item.match_rule || "")}</span>
+          </div>
+          <div class="finding-counts">
+            total ${item.total_count || 0}
+            / title ${item.title_count || 0}
+            / body ${item.body_count || 0}
+            / tags ${item.tag_count || 0}
+            / categories ${item.category_count || 0}
+            / captions ${item.caption_count || 0}
+          </div>
+          ${sentences.length ? `
+            <div class="finding-sentences">
+              <ol>
+                ${sentences.map(sentence => `<li>${highlightKeyword(sentence, item.word, item.match_rule)}</li>`).join("")}
+              </ol>
+            </div>
+          ` : `<p class="empty-note small-note">Body 문장 검출 없음</p>`}
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderRequiredMissing(items) {
+    const target = document.getElementById("detailRequiredList");
+
+    if (!items || items.length === 0) {
+      target.innerHTML = `<p class="empty-note">누락된 필수어가 없습니다.</p>`;
+      return;
+    }
+
+    target.innerHTML = `
+      <div class="required-card">
+        <ul class="required-list">
+          ${items.map(item => `
+            <li>
+              <strong>${escapeHtml(item.word)}</strong>
+              <span>${escapeHtml(item.match_rule || "")}</span>
+            </li>
+          `).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  function openArticleDetail(row) {
+    const detailPanel = document.getElementById("articleDetailPanel");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailShortUrl = document.getElementById("detailShortUrl");
+    const detailLongUrl = document.getElementById("detailLongUrl");
+    const detailCountryCode = document.getElementById("detailCountryCode");
+    const detailPublishedAt = document.getElementById("detailPublishedAt");
+    const detailStatus = document.getElementById("detailStatus");
+    const detailForbiddenCount = document.getElementById("detailForbiddenCount");
+    const detailRequiredCount = document.getElementById("detailRequiredCount");
+    const detailErrorBox = document.getElementById("detailErrorBox");
+
+    const forbiddenFindings = JSON.parse(row.dataset.forbidden || "[]");
+    const requiredMissing = JSON.parse(row.dataset.required || "[]");
+    const errorText = row.dataset.error || "";
+    const longUrl = row.dataset.longUrl || "";
+    const publishedAtRaw = row.dataset.publishedAtRaw || "";
+    const publishedAtNormalized = row.dataset.publishedAtNormalized || "";
+
+    detailTitle.textContent = row.dataset.title || "Untitled";
+    detailShortUrl.textContent = row.dataset.shortUrl || "-";
+    detailLongUrl.textContent = longUrl || "-";
+    detailCountryCode.textContent = extractCountryCodeFromLongUrl(longUrl);
+    detailPublishedAt.textContent = getPublishedDate(publishedAtRaw, publishedAtNormalized);
+    detailStatus.textContent = row.dataset.status || "-";
+    detailForbiddenCount.textContent = row.dataset.forbiddenCount || "0";
+    detailRequiredCount.textContent = row.dataset.requiredCount || "0";
+
+    if (errorText && errorText !== "None") {
+      detailErrorBox.classList.remove("hidden");
+      detailErrorBox.textContent = errorText;
+    } else {
+      detailErrorBox.classList.add("hidden");
+      detailErrorBox.textContent = "";
+    }
+
+    renderForbiddenFindings(forbiddenFindings);
+    renderRequiredMissing(requiredMissing);
+
+    document.querySelectorAll(".result-row-clickable").forEach(el => el.classList.remove("active-row"));
+    row.classList.add("active-row");
+
+    detailPanel.classList.remove("hidden");
+    detailPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function openBookmarkModal(buttonEl) {
+    currentBookmarkButton = buttonEl;
+
+    document.getElementById("bookmarkNoteTitle").textContent = buttonEl.dataset.title || "Bookmark Setting";
+    document.getElementById("bookmarkNoteInput").value = buttonEl.dataset.note || "";
+
+    currentBookmarkLevel = Number(
+      [...buttonEl.classList].find(cls => cls.startsWith("level-"))?.replace("level-", "") || "0"
+    );
+
+    document.querySelectorAll(".bookmark-level-select").forEach(btn => {
+      btn.classList.toggle("selected", Number(btn.dataset.level) === currentBookmarkLevel);
+    });
+
+    document.getElementById("bookmarkNoteModal").classList.remove("hidden");
+  }
+
+  function closeBookmarkModal() {
+    document.getElementById("bookmarkNoteModal").classList.add("hidden");
+    currentBookmarkButton = null;
+  }
+
+  async function saveBookmark() {
+    if (!currentBookmarkButton) return;
+
+    const targetType = currentBookmarkButton.dataset.targetType;
+    const targetKey = currentBookmarkButton.dataset.targetKey;
+    const shortUrl = currentBookmarkButton.dataset.shortUrl || "";
+    const title = currentBookmarkButton.dataset.title || "";
+    const note = document.getElementById("bookmarkNoteInput").value.trim();
+
+    try {
+      const res = await fetch("/api/shared-bookmarks/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          target_type: targetType,
+          target_key: targetKey,
+          short_url: shortUrl,
+          title: title,
+          bookmark_level: currentBookmarkLevel,
+          note: note,
+          extra: {}
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "북마크 저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      currentBookmarkButton.classList.remove("level-0", "level-1", "level-2");
+      currentBookmarkButton.classList.add(`level-${data.bookmark_level}`);
+      currentBookmarkButton.dataset.note = note;
+
+      closeBookmarkModal();
+    } catch (e) {
+      console.error(e);
+      alert("서버 요청 중 오류가 발생했습니다.");
+    }
+  }
+
+  document.getElementById("analysisRunBtn").addEventListener("click", async () => {
+    const inputText = document.getElementById("analysisInput").value.trim();
+
+    if (!inputText) {
+      alert("short link를 입력해 주세요.");
+      return;
+    }
+
+    const btn = document.getElementById("analysisRunBtn");
+    btn.disabled = true;
+    btn.textContent = "Analyzing...";
+
+    try {
+      const res = await fetch("/api/keyword-analysis/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          input_text: inputText
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "분석 중 오류가 발생했습니다.");
+        return;
+      }
+
+      alert("분석이 완료되었습니다.");
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert("서버 요청 중 오류가 발생했습니다.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Analyze";
+    }
+  });
+
+  document.querySelectorAll(".result-row-clickable").forEach(row => {
+    row.addEventListener("click", (event) => {
+      if (event.target.classList.contains("bookmark-btn")) return;
+      openArticleDetail(row);
+    });
+  });
+
+  document.querySelectorAll(".bookmark-btn").forEach(btn => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openBookmarkModal(btn);
+    });
+  });
+
+  document.querySelectorAll(".bookmark-level-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentBookmarkLevel = Number(btn.dataset.level);
+      document.querySelectorAll(".bookmark-level-select").forEach(el => {
+        el.classList.toggle("selected", el === btn);
+      });
+    });
+  });
+
+  document.getElementById("bookmarkSaveBtn").addEventListener("click", saveBookmark);
+  document.getElementById("bookmarkNoteModalClose").addEventListener("click", closeBookmarkModal);
+  document.getElementById("bookmarkNoteModalBackdrop").addEventListener("click", closeBookmarkModal);
+</script>
+{% endblock %}

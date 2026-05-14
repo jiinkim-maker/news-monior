@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="history-layout">
+  <section class="info-card">
+    <div class="card-label">Runs</div>
+    <h3>Keyword Analysis Runs</h3>
+
+    {% if recent_runs %}
+      <div class="table-wrap-dark history-table-wrap">
+        <table class="result-table history-table">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Created By</th>
+              <th>Created At</th>
+              <th>Total Articles</th>
+              <th>Flagged</th>
+              <th>Missing Required</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in recent_runs %}
+              <tr class="history-run-row" data-run-id="{{ item.id }}">
+                <td>{{ item.no }}</td>
+                <td>{{ item.created_by or "-" }}</td>
+                <td>{{ item.display_created_at }}</td>
+                <td>{{ item.total_articles }}</td>
+                <td>{{ item.flagged_articles }}</td>
+                <td>{{ item.missing_required_articles }}</td>
+                <td>{{ item.error_articles }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="runHistoryDetailPanel" class="detail-panel hidden history-detail-panel">
+        <div class="detail-panel-head">
+          <p class="detail-eyebrow">RUN HISTORY DETAIL</p>
+          <h3 id="runHistoryTitle">Run Detail</h3>
+        </div>
+
+        <div class="detail-meta-grid">
+          <div class="detail-meta-box">
+            <span>Created By</span>
+            <strong id="runDetailCreatedBy">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Created At</span>
+            <strong id="runDetailCreatedAt">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Total Articles</span>
+            <strong id="runDetailTotalArticles">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Flagged</span>
+            <strong id="runDetailFlagged">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Missing Required</span>
+            <strong id="runDetailMissingRequired">-</strong>
+          </div>
+          <div class="detail-meta-box">
+            <span>Error</span>
+            <strong id="runDetailError">-</strong>
+          </div>
+        </div>
+
+        <div class="table-wrap-dark history-table-wrap">
+          <table class="result-table history-table">
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Short URL</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Forbidden</th>
+                <th>Required Missing</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody id="runHistoryArticleTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 실행 이력이 없습니다.</p>
+    {% endif %}
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Articles</div>
+    <h3>Keyword Analysis Articles</h3>
+
+    {% if latest_articles %}
+      <div class="history-search-grid">
+        <div class="monitor-filter-box">
+          <label for="historyShortUrlSearch">Short URL</label>
+          <input id="historyShortUrlSearch" class="text-input-dark" type="text" placeholder="Search short url..." />
+        </div>
+
+        <div class="monitor-filter-box">
+          <label for="historyTitleSearch">Article Title</label>
+          <input id="historyTitleSearch" class="text-input-dark" type="text" placeholder="Search article title..." />
+        </div>
+
+        <div class="monitor-filter-box">
+          <label for="historyCreatedAtSearch">Created At</label>
+          <input id="historyCreatedAtSearch" class="text-input-dark" type="text" placeholder="YYYY-MM-DD or HH:MM" />
+        </div>
+      </div>
+
+      <div class="table-wrap-dark history-table-wrap history-article-scroll-wrap">
+        <table class="result-table history-table history-sticky-table">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Bookmark</th>
+              <th>Short URL</th>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Forbidden</th>
+              <th>Required Missing</th>
+              <th>Created By</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody id="latestArticleTableBody">
+            {% for item in latest_articles %}
+              <tr
+                class="history-article-row"
+                data-article-key="{{ item.article_key }}"
+                data-short-url="{{ item.short_url or '' }}"
+                data-title="{{ item.title or '' }}"
+                data-created-at="{{ item.display_created_at or '' }}"
+              >
+                <td>{{ item.no }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="bookmark-btn level-{{ item.bookmark_level or 0 }}"
+                    data-target-type="article"
+                    data-target-key="article::{{ item.article_key }}"
+                    data-short-url="{{ item.short_url or '' }}"
+                    data-title="{{ item.title or '' }}"
+                    data-note="{{ item.bookmark_note or '' }}"
+                    title="공용 북마크"
+                  >★</button>
+                </td>
+                <td>{{ item.short_url or "-" }}</td>
+                <td>{{ item.title or "-" }}</td>
+                <td>
+                  {% if item.status == "flagged" %}
+                    <span class="status-pill status-flagged">Flagged</span>
+                  {% elif item.status == "error" %}
+                    <span class="status-pill status-error">Error</span>
+                  {% else %}
+                    <span class="status-pill status-clean">Clean</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.forbidden_found_count or 0 }}</td>
+                <td>{{ item.required_missing_count or 0 }}</td>
+                <td>{{ item.created_by or "-" }}</td>
+                <td>{{ item.display_created_at }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="articleHistoryModal" class="history-modal hidden">
+        <div class="history-modal-backdrop" id="articleHistoryModalBackdrop"></div>
+        <div class="history-modal-dialog">
+          <button type="button" class="history-modal-close" id="articleHistoryModalClose">×</button>
+
+          <div class="detail-panel-head history-modal-head">
+            <p class="detail-eyebrow">ARTICLE HISTORY DETAIL</p>
+            <h3 id="articleHistoryTitle">Article Detail</h3>
+          </div>
+
+          <div class="table-wrap-dark history-table-wrap history-modal-table-wrap">
+            <table class="result-table history-table history-sticky-table">
+              <thead>
+                <tr>
+                  <th>No.</th>
+                  <th>Created By</th>
+                  <th>Created At</th>
+                  <th>Status</th>
+                  <th>Forbidden</th>
+                  <th>Required Missing</th>
+                  <th>Run ID</th>
+                </tr>
+              </thead>
+              <tbody id="articleHistoryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="bookmarkNoteModal" class="history-modal hidden">
+        <div class="history-modal-backdrop" id="bookmarkNoteModalBackdrop"></div>
+        <div class="history-modal-dialog bookmark-note-dialog">
+          <button type="button" class="history-modal-close" id="bookmarkNoteModalClose">×</button>
+
+          <div class="detail-panel-head history-modal-head">
+            <p class="detail-eyebrow">BOOKMARK NOTE</p>
+            <h3 id="bookmarkNoteTitle">Bookmark Setting</h3>
+          </div>
+
+          <div class="bookmark-level-row">
+            <button type="button" class="bookmark-level-select level-1" data-level="1">Yellow</button>
+            <button type="button" class="bookmark-level-select level-2" data-level="2">Deep Red</button>
+            <button type="button" class="bookmark-level-select level-0" data-level="0">Clear</button>
+          </div>
+
+          <div class="monitor-filter-box">
+            <label for="bookmarkNoteInput">Comment</label>
+            <textarea id="bookmarkNoteInput" class="big-textarea bookmark-note-textarea" placeholder="Add note..."></textarea>
+          </div>
+
+          <div class="analysis-action-row">
+            <button id="bookmarkSaveBtn" class="btn-metallic btn-metallic-md" type="button">Save</button>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 기사 결과가 없습니다.</p>
+    {% endif %}
+  </section>
+</div>
+
+<script id="recentRunsData" type="application/json">{{ recent_runs|tojson }}</script>
+<script id="runArticlesMapData" type="application/json">{{ run_articles_map|tojson }}</script>
+<script id="articleHistoryMapData" type="application/json">{{ article_history_map|tojson }}</script>
+
+<script>
+  const recentRuns = JSON.parse(document.getElementById("recentRunsData").textContent);
+  const runArticlesMap = JSON.parse(document.getElementById("runArticlesMapData").textContent);
+  const articleHistoryMap = JSON.parse(document.getElementById("articleHistoryMapData").textContent);
+
+  let currentBookmarkButton = null;
+  let currentBookmarkLevel = 0;
+
+  function renderStatusPill(status) {
+    if (status === "flagged") return '<span class="status-pill status-flagged">Flagged</span>';
+    if (status === "error") return '<span class="status-pill status-error">Error</span>';
+    return '<span class="status-pill status-clean">Clean</span>';
+  }
+
+  function renderRunHistory(runId) {
+    const run = recentRuns.find(item => String(item.id) === String(runId));
+    if (!run) return;
+
+    const items = runArticlesMap[String(runId)] || [];
+
+    document.getElementById("runHistoryDetailPanel").classList.remove("hidden");
+    document.getElementById("runHistoryTitle").textContent = `Run #${run.id} Detail`;
+    document.getElementById("runDetailCreatedBy").textContent = run.created_by || "-";
+    document.getElementById("runDetailCreatedAt").textContent = run.display_created_at || "-";
+    document.getElementById("runDetailTotalArticles").textContent = run.total_articles ?? "-";
+    document.getElementById("runDetailFlagged").textContent = run.flagged_articles ?? "-";
+    document.getElementById("runDetailMissingRequired").textContent = run.missing_required_articles ?? "-";
+    document.getElementById("runDetailError").textContent = run.error_articles ?? "-";
+
+    const tbody = document.getElementById("runHistoryArticleTableBody");
+
+    if (!items.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty-note">이 Run에 저장된 기사 결과가 없습니다.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = items.map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${item.short_url || "-"}</td>
+        <td>${item.title || "-"}</td>
+        <td>${renderStatusPill(item.status)}</td>
+        <td>${item.forbidden_found_count || 0}</td>
+        <td>${item.required_missing_count || 0}</td>
+        <td>${item.display_created_at || "-"}</td>
+      </tr>
+    `).join("");
+  }
+
+  function openArticleHistoryModal() {
+    document.getElementById("articleHistoryModal").classList.remove("hidden");
+  }
+
+  function closeArticleHistoryModal() {
+    document.getElementById("articleHistoryModal").classList.add("hidden");
+  }
+
+  function renderArticleHistory(articleKey, rowTitle, rowShortUrl) {
+    const items = articleHistoryMap[String(articleKey)] || [];
+
+    document.getElementById("articleHistoryTitle").textContent = rowTitle || rowShortUrl || "Article History";
+
+    const tbody = document.getElementById("articleHistoryTableBody");
+
+    if (!items.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty-note">이 기사에 대한 저장 이력이 없습니다.</td>
+        </tr>
+      `;
+      openArticleHistoryModal();
+      return;
+    }
+
+    tbody.innerHTML = items.map((item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${item.created_by || "-"}</td>
+        <td>${item.display_created_at || "-"}</td>
+        <td>${renderStatusPill(item.status)}</td>
+        <td>${item.forbidden_found_count || 0}</td>
+        <td>${item.required_missing_count || 0}</td>
+        <td>${item.run_id || "-"}</td>
+      </tr>
+    `).join("");
+
+    openArticleHistoryModal();
+  }
+
+  function filterLatestArticles() {
+    const shortUrlKeyword = document.getElementById("historyShortUrlSearch").value.trim().toLowerCase();
+    const titleKeyword = document.getElementById("historyTitleSearch").value.trim().toLowerCase();
+    const createdAtKeyword = document.getElementById("historyCreatedAtSearch").value.trim().toLowerCase();
+
+    document.querySelectorAll(".history-article-row").forEach(row => {
+      const shortUrl = (row.dataset.shortUrl || "").toLowerCase();
+      const title = (row.dataset.title || "").toLowerCase();
+      const createdAt = (row.dataset.createdAt || "").toLowerCase();
+
+      const shortUrlMatch = !shortUrlKeyword || shortUrl.includes(shortUrlKeyword);
+      const titleMatch = !titleKeyword || title.includes(titleKeyword);
+      const createdAtMatch = !createdAtKeyword || createdAt.includes(createdAtKeyword);
+
+      row.style.display = (shortUrlMatch && titleMatch && createdAtMatch) ? "" : "none";
+    });
+  }
+
+  function openBookmarkModal(buttonEl) {
+    currentBookmarkButton = buttonEl;
+
+    document.getElementById("bookmarkNoteTitle").textContent = buttonEl.dataset.title || "Bookmark Setting";
+    document.getElementById("bookmarkNoteInput").value = buttonEl.dataset.note || "";
+
+    currentBookmarkLevel = Number(
+      [...buttonEl.classList].find(cls => cls.startsWith("level-"))?.replace("level-", "") || "0"
+    );
+
+    document.querySelectorAll(".bookmark-level-select").forEach(btn => {
+      btn.classList.toggle("selected", Number(btn.dataset.level) === currentBookmarkLevel);
+    });
+
+    document.getElementById("bookmarkNoteModal").classList.remove("hidden");
+  }
+
+  function closeBookmarkModal() {
+    document.getElementById("bookmarkNoteModal").classList.add("hidden");
+    currentBookmarkButton = null;
+  }
+
+  async function saveBookmark() {
+    if (!currentBookmarkButton) return;
+
+    const targetKey = currentBookmarkButton.dataset.targetKey;
+    const shortUrl = currentBookmarkButton.dataset.shortUrl || "";
+    const title = currentBookmarkButton.dataset.title || "";
+    const note = document.getElementById("bookmarkNoteInput").value.trim();
+
+    try {
+      const res = await fetch("/api/shared-bookmarks/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          target_type: "article",
+          target_key: targetKey,
+          short_url: shortUrl,
+          title: title,
+          bookmark_level: currentBookmarkLevel,
+          note: note,
+          extra: {}
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "북마크 저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      currentBookmarkButton.classList.remove("level-0", "level-1", "level-2");
+      currentBookmarkButton.classList.add(`level-${data.bookmark_level}`);
+      currentBookmarkButton.dataset.note = note;
+
+      closeBookmarkModal();
+    } catch (e) {
+      console.error(e);
+      alert("서버 요청 중 오류가 발생했습니다.");
+    }
+  }
+
+  document.querySelectorAll(".history-run-row").forEach(row => {
+    row.addEventListener("click", () => {
+      document.querySelectorAll(".history-run-row").forEach(r => r.classList.remove("active-row"));
+      row.classList.add("active-row");
+      renderRunHistory(row.dataset.runId);
+    });
+  });
+
+  document.querySelectorAll(".history-article-row").forEach(row => {
+    row.addEventListener("click", (event) => {
+      if (event.target.classList.contains("bookmark-btn")) return;
+
+      document.querySelectorAll(".history-article-row").forEach(r => r.classList.remove("active-row"));
+      row.classList.add("active-row");
+      renderArticleHistory(
+        row.dataset.articleKey,
+        row.dataset.title,
+        row.dataset.shortUrl
+      );
+    });
+  });
+
+  document.querySelectorAll(".bookmark-btn").forEach(btn => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openBookmarkModal(btn);
+    });
+  });
+
+  document.querySelectorAll(".bookmark-level-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentBookmarkLevel = Number(btn.dataset.level);
+      document.querySelectorAll(".bookmark-level-select").forEach(el => {
+        el.classList.toggle("selected", el === btn);
+      });
+    });
+  });
+
+  document.getElementById("historyShortUrlSearch").addEventListener("input", filterLatestArticles);
+  document.getElementById("historyTitleSearch").addEventListener("input", filterLatestArticles);
+  document.getElementById("historyCreatedAtSearch").addEventListener("input", filterLatestArticles);
+
+  document.getElementById("articleHistoryModalClose").addEventListener("click", closeArticleHistoryModal);
+  document.getElementById("articleHistoryModalBackdrop").addEventListener("click", closeArticleHistoryModal);
+
+  document.getElementById("bookmarkSaveBtn").addEventListener("click", saveBookmark);
+  document.getElementById("bookmarkNoteModalClose").addEventListener("click", closeBookmarkModal);
+  document.getElementById("bookmarkNoteModalBackdrop").addEventListener("click", closeBookmarkModal);
+</script>
+{% endblock %}

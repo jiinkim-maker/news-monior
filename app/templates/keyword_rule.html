@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="rule-grid">
+  <section class="info-card">
+    <div class="card-label">Forbidden</div>
+    <h3>Forbidden Keywords</h3>
+
+    <div class="rule-form">
+      <div class="form-row">
+        <input id="forbiddenKeywordInput" class="text-input-dark" type="text" placeholder="금지어 입력" />
+      </div>
+
+      <div class="form-row">
+        <select id="forbiddenMatchRule" class="text-input-dark">
+          <option value="case_insensitive">대소문자 무관</option>
+          <option value="exact">입력 형태 정확히 일치</option>
+          <option value="all_upper">모두 대문자만</option>
+          <option value="all_lower">모두 소문자만</option>
+          <option value="initial_cap">첫 글자만 대문자</option>
+        </select>
+      </div>
+
+      <button id="addForbiddenBtn" class="btn-metallic btn-metallic-sm" type="button">Add</button>
+    </div>
+
+    <div id="forbiddenRuleList" class="rule-chip-list">
+      {% if forbidden_rules %}
+        {% for item in forbidden_rules %}
+          <div class="rule-chip {% if not item.is_active %}inactive{% endif %}">
+            <div class="rule-chip-main">
+              <strong>{{ item.keyword }}</strong>
+              <span>{{ item.match_rule }}</span>
+            </div>
+            <div class="rule-chip-actions">
+              <button class="btn-metallic btn-metallic-sm" data-id="{{ item.id }}" data-active="{{ item.is_active }}" data-type="forbidden">
+                {{ "Disable" if item.is_active else "Enable" }}
+              </button>
+              <button class="btn-metallic btn-metallic-sm" data-id="{{ item.id }}" data-type="forbidden">
+                Delete
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="empty-note">등록된 금지어가 없습니다.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Required</div>
+    <h3>Required Keywords</h3>
+
+    <div class="rule-form">
+      <div class="form-row">
+        <input id="requiredKeywordInput" class="text-input-dark" type="text" placeholder="필수어 입력" />
+      </div>
+
+      <div class="form-row">
+        <select id="requiredMatchRule" class="text-input-dark">
+          <option value="case_insensitive">대소문자 무관</option>
+          <option value="exact">입력 형태 정확히 일치</option>
+          <option value="all_upper">모두 대문자만</option>
+          <option value="all_lower">모두 소문자만</option>
+          <option value="initial_cap">첫 글자만 대문자</option>
+        </select>
+      </div>
+
+      <button id="addRequiredBtn" class="btn-metallic btn-metallic-sm" type="button">Add</button>
+    </div>
+
+    <div id="requiredRuleList" class="rule-chip-list">
+      {% if required_rules %}
+        {% for item in required_rules %}
+          <div class="rule-chip {% if not item.is_active %}inactive{% endif %}">
+            <div class="rule-chip-main">
+              <strong>{{ item.keyword }}</strong>
+              <span>{{ item.match_rule }}</span>
+            </div>
+            <div class="rule-chip-actions">
+              <button class="btn-metallic btn-metallic-sm" data-id="{{ item.id }}" data-active="{{ item.is_active }}" data-type="required">
+                {{ "Disable" if item.is_active else "Enable" }}
+              </button>
+              <button class="btn-metallic btn-metallic-sm" data-id="{{ item.id }}" data-type="required">
+                Delete
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="empty-note">등록된 필수어가 없습니다.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<script>
+  function escapeHtml(value) {
+    if (value === null || value === undefined) return "";
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function renderRuleList(items, targetId, type) {
+    const target = document.getElementById(targetId);
+
+    if (!items || items.length === 0) {
+      target.innerHTML = `<p class="empty-note">등록된 항목이 없습니다.</p>`;
+      attachRuleEvents();
+      return;
+    }
+
+    target.innerHTML = items.map(item => `
+      <div class="rule-chip ${item.is_active ? "" : "inactive"}">
+        <div class="rule-chip-main">
+          <strong>${escapeHtml(item.keyword)}</strong>
+          <span>${escapeHtml(item.match_rule)}</span>
+        </div>
+        <div class="rule-chip-actions">
+          <button class="chip-action toggle-rule-btn" data-id="${item.id}" data-active="${item.is_active}" data-type="${type}">
+            ${item.is_active ? "Disable" : "Enable"}
+          </button>
+          <button class="chip-action delete-rule-btn" data-id="${item.id}" data-type="${type}">
+            Delete
+          </button>
+        </div>
+      </div>
+    `).join("");
+
+    attachRuleEvents();
+  }
+
+  function applyRuleResponse(data) {
+    renderRuleList(data.forbidden_rules || [], "forbiddenRuleList", "forbidden");
+    renderRuleList(data.required_rules || [], "requiredRuleList", "required");
+  }
+
+  async function createRule(ruleType, keyword, matchRule) {
+    const res = await fetch("/api/keyword-rules", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        rule_type: ruleType,
+        keyword,
+        match_rule: matchRule
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.error || "규칙 추가 중 오류가 발생했습니다.");
+      return;
+    }
+
+    applyRuleResponse(data);
+  }
+
+  async function deleteRule(ruleId) {
+    const res = await fetch(`/api/keyword-rules/${ruleId}`, {
+      method: "DELETE"
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "규칙 삭제 중 오류가 발생했습니다.");
+      return;
+    }
+
+    applyRuleResponse(data);
+  }
+
+  async function toggleRule(ruleId, isActive) {
+    const res = await fetch(`/api/keyword-rules/${ruleId}/toggle`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        is_active: !Boolean(Number(isActive))
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "규칙 상태 변경 중 오류가 발생했습니다.");
+      return;
+    }
+
+    applyRuleResponse(data);
+  }
+
+  function attachRuleEvents() {
+    document.querySelectorAll(".delete-rule-btn").forEach(btn => {
+      btn.onclick = async () => {
+        await deleteRule(btn.dataset.id);
+      };
+    });
+
+    document.querySelectorAll(".toggle-rule-btn").forEach(btn => {
+      btn.onclick = async () => {
+        await toggleRule(btn.dataset.id, btn.dataset.active);
+      };
+    });
+  }
+
+  document.getElementById("addForbiddenBtn").addEventListener("click", async () => {
+    const keyword = document.getElementById("forbiddenKeywordInput").value.trim();
+    const matchRule = document.getElementById("forbiddenMatchRule").value;
+
+    if (!keyword) {
+      alert("금지어를 입력해 주세요.");
+      return;
+    }
+
+    await createRule("forbidden", keyword, matchRule);
+    document.getElementById("forbiddenKeywordInput").value = "";
+  });
+
+  document.getElementById("addRequiredBtn").addEventListener("click", async () => {
+    const keyword = document.getElementById("requiredKeywordInput").value.trim();
+    const matchRule = document.getElementById("requiredMatchRule").value;
+
+    if (!keyword) {
+      alert("필수어를 입력해 주세요.");
+      return;
+    }
+
+    await createRule("required", keyword, matchRule);
+    document.getElementById("requiredKeywordInput").value = "";
+  });
+
+  attachRuleEvents();
+</script>
+{% endblock %}

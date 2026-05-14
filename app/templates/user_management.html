@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="analysis-layout">
+  <section class="info-card">
+    <div class="card-label">Admin</div>
+    <h3>Add ID</h3>
+
+    {% if success_message %}
+      <div class="auth-alert auth-alert-info">{{ success_message }}</div>
+    {% endif %}
+
+    {% if error_message %}
+      <div class="auth-alert auth-alert-error">{{ error_message }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('user_management_create') }}" class="auth-form user-management-form">
+      <div class="form-field">
+        <label for="display_name">이름</label>
+        <input id="display_name" name="display_name" type="text" class="text-input-dark" required>
+      </div>
+
+      <div class="form-field">
+        <label for="username">ID</label>
+        <input id="username" name="username" type="text" class="text-input-dark" required>
+      </div>
+
+      <div class="form-field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="text" class="text-input-dark" required>
+      </div>
+
+      <div class="form-field">
+        <label for="role">Role</label>
+        <select id="role" name="role" class="text-input-dark">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+
+      <button type="submit" class="primary-btn user-management-submit-btn">Add ID</button>
+    </form>
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Account List</div>
+    <h3>Registered Users</h3>
+
+    <div class="table-wrap-dark user-management-table-wrap">
+      <table class="result-table user-management-table">
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th>Name</th>
+            <th>ID</th>
+            <th>Role</th>
+            <th>Active</th>
+            <th>Created At</th>
+            <th>Action</th>   
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ user.display_name }}</td>
+              <td>{{ user.username }}</td>
+              <td>{{ user.role }}</td>
+              <td>{{ "Y" if user.is_active else "N" }}</td>
+              <td>{{ format_display_datetime(user.created_at) }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="btn-metallic btn-metallic-sm"
+                  onclick="openDeleteModal('{{ user.id }}', '{{ user.display_name }}', '{{ user.username }}')"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div id="deleteUserModal" style="
+  display:none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.62);
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+">
+  <div style="
+    width: 100%;
+    max-width: 500px;
+    gap : 16px;
+    margin-top: 22px;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(145deg, #000000 0%, #000000 38%, #020202 62%, #000000 100%);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.015);
+    padding: 28px;
+    color: #eef2f5;
+  ">
+    <p class="page-eyebrow" style="margin: 0 0 10px;">DELETE USER</p>
+    <h2 style="margin: 0 0 14px; font-size: 28px;">Delete This User?</h2>
+
+    <p style="margin: 0 0 8px; color: #cfd6de; line-height: 1.7;">
+      Name: <strong id="deleteTargetName">-</strong>
+    </p>
+    <p style="margin: 0 0 18px; color: #cfd6de; line-height: 1.7;">
+      ID: <strong id="deleteTargetUsername">-</strong>
+    </p>
+
+    <form method="POST" action="{{ url_for('user_management_delete') }}" class="auth-form">
+      <input type="hidden" name="user_id" id="deleteUserId">
+
+      <div class="form-field" style="margin-top: 8px;">
+        <label for="delete_operation_code" style="display:block; margin-bottom: 18px;">Operation Code &nbsp;&nbsp;(Code : Cheilnews!)</label>
+        <input id="delete_operation_code" name="delete_operation_code" type="password" class="text-input-dark" required>
+      </div>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top: 10px;">
+        <button type="button" class="btn-metallic btn-metallic-md" onclick="closeDeleteModal()">Cancel</button>
+        <button type="submit" class="btn-metallic btn-metallic-md" style="min-width: 180px;">Confirm Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openDeleteModal(userId, displayName, username) {
+    document.getElementById("deleteUserId").value = userId;
+    document.getElementById("deleteTargetName").textContent = displayName;
+    document.getElementById("deleteTargetUsername").textContent = username;
+    document.getElementById("delete_operation_code").value = "";
+    document.getElementById("deleteUserModal").style.display = "flex";
+  }
+
+  function closeDeleteModal() {
+    document.getElementById("deleteUserModal").style.display = "none";
+  }
+</script>
+{% endblock %}

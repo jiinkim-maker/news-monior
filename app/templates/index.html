@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News Monitoring Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">ARTICLE MONITORING</p>
+        <h1>Daily SMS Dump Review</h1>
+        <p class="sub">
+          기사 내 금지어와 필수어를 검수하고, 결과를 저장·조회하는 대시보드입니다.
+        </p>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="analyze" type="button">Analyze</button>
+      <button class="tab-btn" data-tab="history" type="button">History</button>
+      <button class="tab-btn" data-tab="rules" type="button">Rules</button>
+      <a class="tab-btn" href="/image-sizes">Image Sizes</a>
+    </div>
+
+    <section id="tab-analyze" class="tab-panel active">
+      <section class="panel input-panel">
+        <div class="panel-head">
+          <h2>Input Dump</h2>
+          <button id="analyzeBtn" class="btn" type="button">Analyze</button>
+        </div>
+        <textarea id="dumpInput" placeholder="여기에 SMS 덤프 전체를 붙여넣으세요."></textarea>
+      </section>
+
+      <section id="summarySection" class="panel hidden">
+        <div class="panel-head">
+          <h2>Summary</h2>
+        </div>
+        <div id="summaryGrid" class="summary-grid"></div>
+        <div id="regionStats" class="region-stats"></div>
+      </section>
+
+      <section id="resultsSection" class="panel hidden">
+        <div class="panel-head">
+          <h2>Detailed Results</h2>
+        </div>
+        <div id="resultsList" class="results-list"></div>
+      </section>
+    </section>
+
+    <section id="tab-history" class="tab-panel">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>History</h2>
+        </div>
+
+        <div class="history-toolbar">
+          <div class="history-filter">
+            <button class="filter-btn active" data-status="all" type="button">All</button>
+            <button class="filter-btn" data-status="flagged" type="button">Flagged</button>
+            <button class="filter-btn" data-status="clean" type="button">Clean</button>
+            <button class="filter-btn" data-status="error" type="button">Error</button>
+          </div>
+          <button id="refreshHistoryBtn" class="btn" type="button">Refresh</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>id</th>
+                <th>received_at</th>
+                <th>region</th>
+                <th>short_url</th>
+                <th>bitlink</th>
+                <th>long_url</th>
+                <th>title</th>
+                <th>published_at_raw</th>
+                <th>published_at_normalized</th>
+                <th>forbidden_found_count</th>
+                <th>required_missing_count</th>
+                <th>status</th>
+                <th>error</th>
+                <th>created_at</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="tab-rules" class="tab-panel">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Forbidden Words</h2>
+        </div>
+        <div class="word-add-row">
+          <input id="newForbiddenWordInput" class="word-input" type="text" placeholder="새 금지어 입력" />
+          <button id="addForbiddenWordBtn" class="btn" type="button">Add</button>
+        </div>
+        <div id="forbiddenWordList" class="word-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Required Words</h2>
+        </div>
+        <div class="word-add-row">
+          <input id="newRequiredWordInput" class="word-input" type="text" placeholder="새 필수어 입력" />
+          <button id="addRequiredWordBtn" class="btn" type="button">Add</button>
+        </div>
+        <div id="requiredWordList" class="word-list"></div>
+      </section>
+    </section>
+  </div>
+
+  <div id="historyModal" class="modal hidden">
+    <div class="modal-backdrop" id="historyModalBackdrop"></div>
+    <div class="modal-dialog">
+      <div class="modal-head">
+        <h3>Inspection History</h3>
+        <button id="closeModalBtn" class="modal-close" type="button">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="modalMeta" class="modal-meta"></div>
+        <div id="modalHistoryList" class="modal-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const dumpInput = document.getElementById("dumpInput");
+    const summarySection = document.getElementById("summarySection");
+    const resultsSection = document.getElementById("resultsSection");
+    const summaryGrid = document.getElementById("summaryGrid");
+    const regionStats = document.getElementById("regionStats");
+    const resultsList = document.getElementById("resultsList");
+
+    const historyTableBody = document.getElementById("historyTableBody");
+    const refreshHistoryBtn = document.getElementById("refreshHistoryBtn");
+    const filterButtons = document.querySelectorAll(".filter-btn");
+
+    const newForbiddenWordInput = document.getElementById("newForbiddenWordInput");
+    const addForbiddenWordBtn = document.getElementById("addForbiddenWordBtn");
+    const forbiddenWordList = document.getElementById("forbiddenWordList");
+
+    const newRequiredWordInput = document.getElementById("newRequiredWordInput");
+    const addRequiredWordBtn = document.getElementById("addRequiredWordBtn");
+    const requiredWordList = document.getElementById("requiredWordList");
+
+    const tabButtons = document.querySelectorAll(".tab-btn[data-tab]");
+    const tabPanels = document.querySelectorAll(".tab-panel");
+
+    const historyModal = document.getElementById("historyModal");
+    const historyModalBackdrop = document.getElementById("historyModalBackdrop");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const modalMeta = document.getElementById("modalMeta");
+    const modalHistoryList = document.getElementById("modalHistoryList");
+
+    let currentHistoryStatus = "all";
+
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return "";
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function highlightWord(text, word) {
+      if (!text || !word) return escapeHtml(text || "");
+
+      const escapedText = escapeHtml(text);
+      const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`(${escapedWord})`, "gi");
+
+      return escapedText.replace(regex, "<mark>$1</mark>");
+    }
+
+    function truncate(value, length = 40) {
+      const text = String(value ?? "");
+      return text.length > length ? `${text.slice(0, length)}...` : text;
+    }
+
+    function openTab(tabName) {
+      tabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.tab === tabName));
+      tabPanels.forEach(panel => panel.classList.toggle("active", panel.id === `tab-${tabName}`));
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => openTab(btn.dataset.tab));
+    });
+
+    function renderSummary(summary) {
+      summaryGrid.innerHTML = `
+        <div class="stat"><span>Total SMS</span><strong>${summary.total_sms ?? 0}</strong></div>
+        <div class="stat"><span>Unique Articles</span><strong>${summary.unique_articles ?? 0}</strong></div>
+        <div class="stat"><span>Duplicates</span><strong>${summary.duplicate_sms ?? 0}</strong></div>
+        <div class="stat"><span>Flagged</span><strong>${summary.flagged_articles ?? 0}</strong></div>
+        <div class="stat"><span>Clean</span><strong>${summary.clean_articles ?? 0}</strong></div>
+        <div class="stat"><span>Error</span><strong>${summary.error_articles ?? 0}</strong></div>
+      `;
+
+      const entries = Object.entries(summary.region_counts || {});
+      regionStats.innerHTML = entries.length
+        ? entries.map(([region, count]) => {
+            const flagged = (summary.flagged_region_counts || {})[region] || 0;
+            return `
+              <div class="region-card">
+                <div class="region-top">
+                  <strong>${escapeHtml(region)}</strong>
+                  <span>${count} articles</span>
+                </div>
+                <div class="region-bottom">flagged: ${flagged}</div>
+              </div>
+            `;
+          }).join("")
+        : `<p class="empty-text">국가별 집계 결과가 없습니다.</p>`;
+    }
+
+    function statusBadge(item) {
+      if (item.error) return `<span class="badge error">Error</span>`;
+      if (item.status === "flagged") return `<span class="badge danger">Flagged</span>`;
+      return `<span class="badge clean">Clean</span>`;
+    }
+
+    function renderForbiddenFindings(findings) {
+      if (!findings || findings.length === 0) {
+        return `<div class="badge clean">No forbidden words</div>`;
+      }
+
+      return findings.map(item => {
+        const bodyOccurrences = item.body_occurrence_sentences || [];
+
+        return `
+          <div class="finding-box">
+            <div class="finding-head">
+              <strong>${escapeHtml(item.word)}</strong>
+              <span>${escapeHtml((item.locations || []).join(", "))}</span>
+            </div>
+            <div class="finding-meta">
+              total ${item.total_count ?? 0}
+              / title ${item.title_count ?? 0}
+              / body ${item.body_count ?? 0}
+              / tags ${item.tag_count ?? 0}
+              / categories ${item.category_count ?? 0}
+              / captions ${item.caption_count ?? 0}
+            </div>
+
+            ${bodyOccurrences.length ? `
+              <div class="finding-section">
+                <p>Body</p>
+                <ol>
+                  ${bodyOccurrences.map(sentence => `<li>${highlightWord(sentence, item.word)}</li>`).join("")}
+                </ol>
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderRequiredMissing(items) {
+      if (!items || items.length === 0) {
+        return `<div class="badge clean">No missing required words</div>`;
+      }
+
+      return `
+        <div class="finding-box">
+          <div class="finding-head">
+            <strong>Missing Required Words</strong>
+            <span>${items.length}</span>
+          </div>
+          <div class="finding-section">
+            <ul>
+              ${items.map(item => `<li>${escapeHtml(item.word)}</li>`).join("")}
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAnalyzeResults(results) {
+      if (!results || results.length === 0) {
+        resultsList.innerHTML = `<p class="empty-text">분석 결과가 없습니다.</p>`;
+        return;
+      }
+
+      resultsList.innerHTML = results.map(item => `
+        <div class="result-card">
+          <div class="result-top">
+            <div>
+              <div class="meta-line">
+                <span class="pill">${escapeHtml(item.region || "UNKNOWN")}</span>
+                <span>${escapeHtml(item.received_at || "")}</span>
+              </div>
+              <h3>${escapeHtml(item.title || "제목 없음")}</h3>
+              <p class="url">${escapeHtml(item.short_url || "")}</p>
+              ${item.long_url ? `<p class="url secondary">${escapeHtml(item.long_url)}</p>` : ""}
+            </div>
+            <div>${statusBadge(item)}</div>
+          </div>
+
+          <div class="meta-grid">
+            <div><span>Published Raw</span><strong>${escapeHtml(item.published_at_raw || "-")}</strong></div>
+            <div><span>Published</span><strong>${escapeHtml(item.published_at_normalized || "-")}</strong></div>
+            <div><span>Tags</span><strong>${(item.tags || []).length}</strong></div>
+            <div><span>Categories</span><strong>${(item.categories || []).length}</strong></div>
+            <div><span>Captions</span><strong>${(item.captions || []).length}</strong></div>
+            <div><span>Forbidden Count</span><strong>${item.forbidden_found_count ?? 0}</strong></div>
+          </div>
+
+          ${item.error ? `<div class="error-box">${escapeHtml(item.error)}</div>` : ""}
+          ${renderForbiddenFindings(item.forbidden_findings)}
+          ${renderRequiredMissing(item.required_missing)}
+        </div>
+      `).join("");
+    }
+
+    function renderHistoryTable(items) {
+      if (!items || items.length === 0) {
+        historyTableBody.innerHTML = `
+          <tr>
+            <td colspan="14" class="empty-cell">데이터가 없습니다.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      historyTableBody.innerHTML = items.map(item => `
+        <tr class="history-row" data-bitlink="${escapeHtml(item.bitlink || "")}">
+          <td>${item.id ?? ""}</td>
+          <td title="${escapeHtml(item.received_at || "")}">${escapeHtml(truncate(item.received_at, 19))}</td>
+          <td>${escapeHtml(item.region || "")}</td>
+          <td title="${escapeHtml(item.short_url || "")}">${escapeHtml(truncate(item.short_url, 24))}</td>
+          <td title="${escapeHtml(item.bitlink || "")}">${escapeHtml(truncate(item.bitlink, 18))}</td>
+          <td title="${escapeHtml(item.long_url || "")}">${escapeHtml(truncate(item.long_url, 28))}</td>
+          <td title="${escapeHtml(item.title || "")}">${escapeHtml(truncate(item.title, 36))}</td>
+          <td>${escapeHtml(item.published_at_raw || "")}</td>
+          <td>${escapeHtml(item.published_at_normalized || "")}</td>
+          <td>${item.forbidden_found_count ?? 0}</td>
+          <td>${item.required_missing_count ?? 0}</td>
+          <td>${escapeHtml(item.status || "")}</td>
+          <td title="${escapeHtml(item.error || "")}">${escapeHtml(truncate(item.error || "", 18))}</td>
+          <td>${escapeHtml(truncate(item.created_at || "", 19))}</td>
+        </tr>
+      `).join("");
+
+      document.querySelectorAll(".history-row").forEach(row => {
+        row.addEventListener("click", async () => {
+          const bitlink = row.dataset.bitlink;
+          await openHistoryModal(bitlink);
+        });
+      });
+    }
+
+    function renderRuleList(items, targetEl, type) {
+      targetEl.innerHTML = items.length
+        ? items.map(item => `
+            <div class="word-chip ${item.is_active ? "" : "inactive"}">
+              <span>${escapeHtml(item.word)}</span>
+              <div class="word-actions">
+                <button type="button" data-id="${item.id}" data-active="${item.is_active ? 1 : 0}" class="toggle-${type}-btn">
+                  ${item.is_active ? "Disable" : "Enable"}
+                </button>
+                <button type="button" data-id="${item.id}" class="delete-${type}-btn">Delete</button>
+              </div>
+            </div>
+          `).join("")
+        : `<p class="empty-text">등록된 항목이 없습니다.</p>`;
+
+      document.querySelectorAll(`.delete-${type}-btn`).forEach(btn => {
+        btn.addEventListener("click", async () => {
+          await fetch(`/${type}-words/${btn.dataset.id}`, { method: "DELETE" });
+          if (type === "forbidden") {
+            await loadForbiddenWords();
+          } else {
+            await loadRequiredWords();
+          }
+        });
+      });
+
+      document.querySelectorAll(`.toggle-${type}-btn`).forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const current = btn.dataset.active === "1";
+          await fetch(`/${type}-words/${btn.dataset.id}/toggle`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_active: !current })
+          });
+          if (type === "forbidden") {
+            await loadForbiddenWords();
+          } else {
+            await loadRequiredWords();
+          }
+        });
+      });
+    }
+
+    async function loadForbiddenWords() {
+      const res = await fetch("/forbidden-words");
+      const data = await res.json();
+      renderRuleList(data.items || [], forbiddenWordList, "forbidden");
+    }
+
+    async function loadRequiredWords() {
+      const res = await fetch("/required-words");
+      const data = await res.json();
+      renderRuleList(data.items || [], requiredWordList, "required");
+    }
+
+    async function loadHistory(status = "all", limit = 100) {
+      currentHistoryStatus = status;
+      const res = await fetch(`/history?status=${encodeURIComponent(status)}&limit=${limit}`);
+      const data = await res.json();
+      renderHistoryTable(data.items || []);
+    }
+
+    async function openHistoryModal(bitlink) {
+      const res = await fetch(`/history/bitlink?bitlink=${encodeURIComponent(bitlink)}&limit=50`);
+      const data = await res.json();
+      const items = data.items || [];
+
+      modalMeta.innerHTML = `
+        <div><strong>bitlink</strong> ${escapeHtml(data.bitlink || "")}</div>
+        <div><strong>records</strong> ${items.length}</div>
+      `;
+
+      modalHistoryList.innerHTML = items.length
+        ? items.map(item => `
+            <div class="modal-history-card">
+              <div class="modal-history-head">
+                <strong>#${item.id}</strong>
+                ${statusBadge(item)}
+              </div>
+              <div class="modal-grid">
+                <div><span>received_at</span><strong>${escapeHtml(item.received_at || "")}</strong></div>
+                <div><span>region</span><strong>${escapeHtml(item.region || "")}</strong></div>
+                <div><span>short_url</span><strong>${escapeHtml(item.short_url || "")}</strong></div>
+                <div><span>long_url</span><strong>${escapeHtml(item.long_url || "")}</strong></div>
+                <div><span>title</span><strong>${escapeHtml(item.title || "")}</strong></div>
+                <div><span>published_at_raw</span><strong>${escapeHtml(item.published_at_raw || "")}</strong></div>
+                <div><span>published_at_normalized</span><strong>${escapeHtml(item.published_at_normalized || "")}</strong></div>
+                <div><span>forbidden_found_count</span><strong>${item.forbidden_found_count ?? 0}</strong></div>
+                <div><span>required_missing_count</span><strong>${item.required_missing_count ?? 0}</strong></div>
+                <div><span>status</span><strong>${escapeHtml(item.status || "")}</strong></div>
+                <div><span>created_at</span><strong>${escapeHtml(item.created_at || "")}</strong></div>
+              </div>
+
+              ${item.error ? `<div class="error-box">${escapeHtml(item.error)}</div>` : ""}
+              ${renderForbiddenFindings(item.forbidden_findings)}
+              ${renderRequiredMissing(item.required_missing)}
+            </div>
+          `).join("")
+        : `<p class="empty-text">이력이 없습니다.</p>`;
+
+      historyModal.classList.remove("hidden");
+    }
+
+    function closeHistoryModal() {
+      historyModal.classList.add("hidden");
+      modalMeta.innerHTML = "";
+      modalHistoryList.innerHTML = "";
+    }
+
+    closeModalBtn.addEventListener("click", closeHistoryModal);
+    historyModalBackdrop.addEventListener("click", closeHistoryModal);
+
+    refreshHistoryBtn.addEventListener("click", async () => {
+      await loadHistory(currentHistoryStatus);
+    });
+
+    addForbiddenWordBtn.addEventListener("click", async () => {
+      const word = newForbiddenWordInput.value.trim();
+      if (!word) {
+        alert("금지어를 입력해 주세요.");
+        return;
+      }
+
+      const res = await fetch("/forbidden-words", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "금지어 추가 중 오류가 발생했습니다.");
+        return;
+      }
+
+      newForbiddenWordInput.value = "";
+      renderRuleList(data.items || [], forbiddenWordList, "forbidden");
+    });
+
+    addRequiredWordBtn.addEventListener("click", async () => {
+      const word = newRequiredWordInput.value.trim();
+      if (!word) {
+        alert("필수어를 입력해 주세요.");
+        return;
+      }
+
+      const res = await fetch("/required-words", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "필수어 추가 중 오류가 발생했습니다.");
+        return;
+      }
+
+      newRequiredWordInput.value = "";
+      renderRuleList(data.items || [], requiredWordList, "required");
+    });
+
+    filterButtons.forEach(btn => {
+      btn.addEventListener("click", async () => {
+        filterButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        await loadHistory(btn.dataset.status);
+      });
+    });
+
+    analyzeBtn.addEventListener("click", async () => {
+      const dump = dumpInput.value.trim();
+
+      if (!dump) {
+        alert("SMS 덤프를 입력해 주세요.");
+        return;
+      }
+
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = "Analyzing...";
+
+      try {
+        const res = await fetch("/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dump })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || "분석 중 오류가 발생했습니다.");
+          return;
+        }
+
+        renderSummary(data.summary || {});
+        renderAnalyzeResults(data.results || []);
+        summarySection.classList.remove("hidden");
+        resultsSection.classList.remove("hidden");
+        openTab("analyze");
+        await loadHistory(currentHistoryStatus);
+      } catch (e) {
+        console.error(e);
+        alert("서버 요청 중 오류가 발생했습니다.");
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.textContent = "Analyze";
+      }
+    });
+
+    loadForbiddenWords();
+    loadRequiredWords();
+    loadHistory("all");
+  </script>
+</body>
+</html>

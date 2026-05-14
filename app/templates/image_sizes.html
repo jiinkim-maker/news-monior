@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="analysis-layout">
+  <section class="info-card">
+    <div class="card-label">Input</div>
+    <h3>Image / GIF / MP4 Analysis</h3>
+    <p class="section-desc">
+      short link를 한 줄에 하나씩 입력한 뒤 Analyze를 누르면, 기사 내 이미지 / GIF / MP4 / 임베드 영상을 수집해
+      사이즈와 용량, preview를 확인할 수 있습니다. 마지막 입력값과 결과는 저장되어 다시 들어와도 유지됩니다.
+    </p>
+
+    <div class="analysis-input-wrap">
+      <textarea id="mediaAnalysisInput" class="big-textarea" placeholder="https://bit.ly/xxxxxx&#10;https://bit.ly/yyyyyy">{% if latest_run %}{{ latest_run.input_text }}{% endif %}</textarea>
+    </div>
+
+    <div class="analysis-action-row">
+      <button id="mediaAnalysisRunBtn" class="btn-metallic btn-metallic-lg" type="button">Analyze</button>
+    </div>
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Latest Run</div>
+    <h3>Saved Input & Summary</h3>
+
+    {% if latest_run %}
+      <div class="media-summary-layout">
+        <div class="media-summary-box-grid">
+          {% for box in media_summary_boxes %}
+            <div class="meta-box media-summary-box">
+              <span>{{ box.label }}</span>
+              <strong>{{ box.value }}</strong>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="media-heatmap-card">
+          <div class="media-heatmap-head">
+            <h4>Media by Article</h4>
+          </div>
+
+          {% if media_heatmap_groups %}
+            <div class="media-heatmap-table">
+              {% for group in media_heatmap_groups %}
+                <div class="media-heatmap-row" title="{{ group['article_title'] }}">
+                  <div class="media-heatmap-no">{{ group['article_no'] }}</div>
+                  <div class="media-heatmap-country">{{ group['country_code'] }}</div>
+                  <div class="media-heatmap-block-line">
+                    {% for block in group["blocks"] %}
+                      <span
+                        class="media-heat-block {{ block['tone_class'] }}"
+                        title="{{ block['media_type'] }} / {{ block['filename'] }}"
+                      >
+                        {% if block['has_error'] %}
+                          <span class="media-heat-block-check">✔</span>
+                        {% endif %}
+                      </span>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+
+            <div class="media-heatmap-legend">
+              <div class="media-legend-item">
+                <span class="media-legend-swatch tone-image"></span>
+                <span>JPG / PNG ({{ media_type_counts.image }})</span>
+              </div>
+              <div class="media-legend-item">
+                <span class="media-legend-swatch tone-mp4"></span>
+                <span>MP4 ({{ media_type_counts.mp4 }})</span>
+              </div>
+              <div class="media-legend-item">
+                <span class="media-legend-swatch tone-gif"></span>
+                <span>GIF ({{ media_type_counts.gif }})</span>
+              </div>
+              <div class="media-legend-item">
+                <span class="media-legend-swatch tone-embedded"></span>
+                <span>Embedded ({{ media_type_counts.embedded }})</span>
+              </div>
+              <div class="media-legend-item">
+                <span class="media-legend-swatch tone-no-media"></span>
+                <span>No Media ({{ media_type_counts.no_media }})</span>
+              </div>
+              <div class="media-legend-item">
+                <span class="media-legend-error">✔</span>
+                <span>Error Included ({{ media_type_counts.error }})</span>
+              </div>
+            </div>
+          {% else %}
+            <p class="empty-note">시각화할 media 데이터가 없습니다.</p>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 실행 이력이 없습니다.</p>
+    {% endif %}
+  </section>
+
+  <section class="info-card">
+    <div class="card-label">Latest Result</div>
+    <h3>Media Result Table</h3>
+
+    {% if grouped_media_articles %}
+      <div class="media-filter-grid">
+        <div class="monitor-filter-box">
+          <label for="mediaShortUrlFilter">Short URL</label>
+          <input id="mediaShortUrlFilter" class="text-input-dark" type="text" placeholder="Search short url..." />
+        </div>
+
+        <div class="monitor-filter-box">
+          <label for="mediaTypeFilter">Media Type</label>
+          <select id="mediaTypeFilter" class="text-input-dark">
+            <option value="">All Types</option>
+            <option value="image">image</option>
+            <option value="gif">gif</option>
+            <option value="mp4">mp4</option>
+            <option value="embedded_video">embedded_video</option>
+          </select>
+        </div>
+
+        <div class="monitor-filter-box">
+          <label for="mediaMinWidthFilter">Width Min</label>
+          <input id="mediaMinWidthFilter" class="text-input-dark" type="number" min="0" placeholder="e.g. 3000" />
+        </div>
+
+        <div class="monitor-filter-box">
+          <label for="mediaMinHeightFilter">Height Min</label>
+          <input id="mediaMinHeightFilter" class="text-input-dark" type="number" min="0" placeholder="e.g. 2000" />
+        </div>
+
+        <div class="monitor-filter-box">
+          <label for="mediaMinSizeFilter">Size(bytes) Min</label>
+          <input id="mediaMinSizeFilter" class="text-input-dark" type="number" min="0" placeholder="e.g. 1000000" />
+        </div>
+
+        <div class="monitor-filter-box">
+          <label for="mediaErrorOnlyFilter">Error Only</label>
+          <select id="mediaErrorOnlyFilter" class="text-input-dark">
+            <option value="">All</option>
+            <option value="1">Error Only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap-dark">
+        <table class="result-table media-result-table history-table">
+          <thead>
+            <tr>
+              <th>Short URL</th>
+              <th>Article Title</th>
+              <th>Bookmark</th>
+              <th>Media Type</th>
+              <th>Filename</th>
+              <th>Media URL</th>
+              <th>Width</th>
+              <th>Height</th>
+              <th>Size</th>
+              <th>Preview</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody id="mediaGroupedTableBody">
+            {% for group in grouped_media_articles %}
+              {% for item in group["items"] %}
+                <tr
+                  class="media-group-row"
+                  data-group-key="{{ group['group_key'] }}"
+                  data-short-url="{{ group['short_url'] | e }}"
+                  data-article-title="{{ group['article_title'] | e }}"
+                  data-media-types="{{ group['media_type_filter_value'] | e }}"
+                  data-max-width="{{ group['max_width'] or 0 }}"
+                  data-max-height="{{ group['max_height'] or 0 }}"
+                  data-max-size="{{ group['max_size_bytes'] or 0 }}"
+                  data-has-error="{{ 1 if group['has_error'] else 0 }}"
+                >
+                  {% if loop.first %}
+                    <td rowspan="{{ group['rowspan'] }}" class="media-merged-cell">
+                      {% if group['short_url'] and group['short_url'] != "-" %}
+                        <a href="{{ group['short_url'] }}" target="_blank" rel="noopener noreferrer" class="table-link">
+                          {{ group['short_url'] }}
+                        </a>
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td rowspan="{{ group['rowspan'] }}" class="media-merged-cell">
+                      {{ group['article_title'] or "-" }}
+                    </td>
+                  {% endif %}
+
+                  <td>
+                    <button
+                      type="button"
+                      class="bookmark-btn level-{{ item.bookmark_level or 0 }}"
+                      data-target-type="media"
+                      data-target-key="{{ item.media_target_key }}"
+                      data-short-url="{{ item.short_url or '' }}"
+                      data-title="{{ item.article_title or '' }}"
+                      data-note="{{ item.bookmark_note or '' }}"
+                      data-media-url="{{ item.media_url or '' }}"
+                      data-filename="{{ item.filename or '' }}"
+                      title="공용 북마크"
+                    >★</button>
+                  </td>
+
+                  <td>
+                    {% if item.media_type %}
+                      <span class="media-type-pill media-type-{{ item.media_type }}">{{ item.media_type }}</span>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>{{ item.filename or "-" }}</td>
+                  <td>
+                    {% if item.media_url %}
+                      <a href="{{ item.media_url }}" target="_blank" rel="noopener noreferrer" class="table-link">
+                        Open
+                      </a>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>{{ item.width if item.width is not none else "-" }}</td>
+                  <td>{{ item.height if item.height is not none else "-" }}</td>
+                  <td>{{ item.size_display or "-" }}</td>
+                  <td>
+                    {% if item.preview_url and item.media_type in ["image", "gif"] %}
+                      <img src="{{ item.preview_url }}" alt="preview" class="media-preview-thumb" />
+                    {% elif item.preview_url and item.media_type == "mp4" %}
+                      <video class="media-preview-thumb video-preview" muted playsinline preload="metadata" controls>
+                        <source src="{{ item.preview_url }}" type="video/mp4" />
+                      </video>
+                    {% elif item.preview_url and item.media_type == "embedded_video" %}
+                      <a href="{{ item.preview_url }}" target="_blank" rel="noopener noreferrer" class="embedded-preview-link">
+                        Open Embedded Video
+                      </a>
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if item.error %}
+                      {% if item.error|lower == "no media found" %}
+                        <span class="status-pill status-clean">No Media</span>
+                        <div class="cell-error-text">{{ item.error }}</div>
+                      {% else %}
+                        <span class="status-pill status-error">Error</span>
+                        <div class="cell-error-text">{{ item.error }}</div>
+                      {% endif %}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="mediaBookmarkNoteModal" class="history-modal hidden">
+        <div class="history-modal-backdrop" id="mediaBookmarkNoteModalBackdrop"></div>
+        <div class="history-modal-dialog bookmark-note-dialog">
+          <button type="button" class="history-modal-close" id="mediaBookmarkNoteModalClose">×</button>
+
+          <div class="detail-panel-head history-modal-head">
+            <p class="detail-eyebrow">MEDIA BOOKMARK NOTE</p>
+            <h3 id="mediaBookmarkNoteTitle">Bookmark Setting</h3>
+          </div>
+
+          <div class="bookmark-level-row">
+            <button type="button" class="media-bookmark-level-select level-1" data-level="1">Yellow</button>
+            <button type="button" class="media-bookmark-level-select level-2" data-level="2">Deep Red</button>
+            <button type="button" class="media-bookmark-level-select level-0" data-level="0">Clear</button>
+          </div>
+
+          <div class="monitor-filter-box">
+            <label for="mediaBookmarkNoteInput">Comment</label>
+            <textarea id="mediaBookmarkNoteInput" class="big-textarea bookmark-note-textarea" placeholder="Add note..."></textarea>
+          </div>
+
+          <div class="analysis-action-row">
+            <button id="mediaBookmarkSaveBtn" class="btn-metallic btn-metallic-md" type="button">Save</button>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-note">저장된 media 결과가 없습니다.</p>
+    {% endif %}
+  </section>
+</div>
+
+<script>
+  let currentMediaBookmarkButton = null;
+  let currentMediaBookmarkLevel = 0;
+
+  document.getElementById("mediaAnalysisRunBtn").addEventListener("click", async () => {
+    const inputText = document.getElementById("mediaAnalysisInput").value.trim();
+
+    if (!inputText) {
+      alert("short link를 입력해 주세요.");
+      return;
+    }
+
+    const btn = document.getElementById("mediaAnalysisRunBtn");
+    btn.disabled = true;
+    btn.textContent = "Analyzing...";
+
+    try {
+      const res = await fetch("/api/media-analysis/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          input_text: inputText
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "분석 중 오류가 발생했습니다.");
+        return;
+      }
+
+      alert("분석이 완료되었습니다.");
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert("서버 요청 중 오류가 발생했습니다.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Analyze";
+    }
+  });
+
+  function filterMediaGroups() {
+    const shortUrlValue = document.getElementById("mediaShortUrlFilter").value.trim().toLowerCase();
+    const mediaTypeValue = document.getElementById("mediaTypeFilter").value.trim().toLowerCase();
+    const minWidthValue = Number(document.getElementById("mediaMinWidthFilter").value || 0);
+    const minHeightValue = Number(document.getElementById("mediaMinHeightFilter").value || 0);
+    const minSizeValue = Number(document.getElementById("mediaMinSizeFilter").value || 0);
+    const errorOnlyValue = document.getElementById("mediaErrorOnlyFilter").value;
+
+    const rows = Array.from(document.querySelectorAll(".media-group-row"));
+    const grouped = {};
+
+    rows.forEach(row => {
+      const key = row.dataset.groupKey;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(row);
+    });
+
+    Object.keys(grouped).forEach(key => {
+      const firstRow = grouped[key][0];
+      const shortUrl = (firstRow.dataset.shortUrl || "").toLowerCase();
+      const mediaTypes = (firstRow.dataset.mediaTypes || "").toLowerCase();
+      const maxWidth = Number(firstRow.dataset.maxWidth || 0);
+      const maxHeight = Number(firstRow.dataset.maxHeight || 0);
+      const maxSize = Number(firstRow.dataset.maxSize || 0);
+      const hasError = firstRow.dataset.hasError === "1";
+
+      const shortUrlMatch = !shortUrlValue || shortUrl.includes(shortUrlValue);
+      const mediaTypeMatch = !mediaTypeValue || mediaTypes.includes(mediaTypeValue);
+      const widthMatch = maxWidth >= minWidthValue;
+      const heightMatch = maxHeight >= minHeightValue;
+      const sizeMatch = maxSize >= minSizeValue;
+      const errorMatch = !errorOnlyValue || hasError;
+
+      const shouldShow = shortUrlMatch && mediaTypeMatch && widthMatch && heightMatch && sizeMatch && errorMatch;
+
+      grouped[key].forEach(row => {
+        row.style.display = shouldShow ? "" : "none";
+      });
+    });
+  }
+
+  function openMediaBookmarkModal(buttonEl) {
+    currentMediaBookmarkButton = buttonEl;
+
+    document.getElementById("mediaBookmarkNoteTitle").textContent = buttonEl.dataset.filename || buttonEl.dataset.title || "Bookmark Setting";
+    document.getElementById("mediaBookmarkNoteInput").value = buttonEl.dataset.note || "";
+
+    currentMediaBookmarkLevel = Number(
+      [...buttonEl.classList].find(cls => cls.startsWith("level-"))?.replace("level-", "") || "0"
+    );
+
+    document.querySelectorAll(".media-bookmark-level-select").forEach(btn => {
+      btn.classList.toggle("selected", Number(btn.dataset.level) === currentMediaBookmarkLevel);
+    });
+
+    document.getElementById("mediaBookmarkNoteModal").classList.remove("hidden");
+  }
+
+  function closeMediaBookmarkModal() {
+    document.getElementById("mediaBookmarkNoteModal").classList.add("hidden");
+    currentMediaBookmarkButton = null;
+  }
+
+  async function saveMediaBookmark() {
+    if (!currentMediaBookmarkButton) return;
+
+    const targetKey = currentMediaBookmarkButton.dataset.targetKey;
+    const shortUrl = currentMediaBookmarkButton.dataset.shortUrl || "";
+    const title = currentMediaBookmarkButton.dataset.title || "";
+    const note = document.getElementById("mediaBookmarkNoteInput").value.trim();
+    const mediaUrl = currentMediaBookmarkButton.dataset.mediaUrl || "";
+    const filename = currentMediaBookmarkButton.dataset.filename || "";
+
+    try {
+      const res = await fetch("/api/shared-bookmarks/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          target_type: "media",
+          target_key: targetKey,
+          short_url: shortUrl,
+          title: title,
+          bookmark_level: currentMediaBookmarkLevel,
+          note: note,
+          extra: {
+            media_url: mediaUrl,
+            filename: filename
+          }
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "북마크 저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      currentMediaBookmarkButton.classList.remove("level-0", "level-1", "level-2");
+      currentMediaBookmarkButton.classList.add(`level-${data.bookmark_level}`);
+      currentMediaBookmarkButton.dataset.note = note;
+
+      closeMediaBookmarkModal();
+    } catch (e) {
+      console.error(e);
+      alert("서버 요청 중 오류가 발생했습니다.");
+    }
+  }
+
+  document.getElementById("mediaShortUrlFilter").addEventListener("input", filterMediaGroups);
+  document.getElementById("mediaTypeFilter").addEventListener("change", filterMediaGroups);
+  document.getElementById("mediaMinWidthFilter").addEventListener("input", filterMediaGroups);
+  document.getElementById("mediaMinHeightFilter").addEventListener("input", filterMediaGroups);
+  document.getElementById("mediaMinSizeFilter").addEventListener("input", filterMediaGroups);
+  document.getElementById("mediaErrorOnlyFilter").addEventListener("change", filterMediaGroups);
+
+  document.querySelectorAll(".bookmark-btn").forEach(btn => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openMediaBookmarkModal(btn);
+    });
+  });
+
+  document.querySelectorAll(".media-bookmark-level-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentMediaBookmarkLevel = Number(btn.dataset.level);
+      document.querySelectorAll(".media-bookmark-level-select").forEach(el => {
+        el.classList.toggle("selected", el === btn);
+      });
+    });
+  });
+
+  document.getElementById("mediaBookmarkSaveBtn").addEventListener("click", saveMediaBookmark);
+  document.getElementById("mediaBookmarkNoteModalClose").addEventListener("click", closeMediaBookmarkModal);
+  document.getElementById("mediaBookmarkNoteModalBackdrop").addEventListener("click", closeMediaBookmarkModal);
+</script>
+{% endblock %}

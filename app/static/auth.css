@@ -1,0 +1,332 @@
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: transparent;
+}
+
+.auth-shell-split {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding: 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+  align-items: center;
+  background: transparent;
+}
+
+/* 로그인 창 블럭 2개 */
+.auth-panel {
+  min-height: 620px;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.04);
+  background:
+    linear-gradient(145deg, #000000 0%, #000000 38%, #020202 62%, #000000 100%);
+  box-shadow:
+    0 24px 60px rgba(0,0,0,0.72),
+    inset 0 1px 0 rgba(255,255,255,0.015);
+}
+
+.auth-panel-brand,
+.auth-panel-form {
+  background:
+    linear-gradient(145deg, #000000 0%, #000000 38%, #020202 62%, #000000 100%);
+}
+
+.auth-panel-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 44px;
+}
+
+.auth-panel-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 44px;
+}
+
+.auth-brand-inner {
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.auth-brand-copy,
+.auth-header-left {
+  text-align: left;
+  width: 100%;
+}
+
+.auth-brand-copy h1 {
+  margin: 10px 0 14px;
+}
+
+.auth-brand-desc {
+  color: #b9c1ca;
+  line-height: 1.75;
+  max-width: 360px;
+}
+
+/* 비번 재설정 블럭 1개 */
+.auth-card {
+  width: 100%;
+  max-width: 620px; /* 블럭 가로 크기 컨트롤 */
+  padding: 80px 82px;  /* 내부 여백 컨트롤 */
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 30px;
+  background:
+    linear-gradient(145deg, #000000 0%, #000000 38%, #020202 62%, #000000 100%);
+  box-shadow:
+    0 24px 60px rgba(0,0,0,0.72),
+    inset 0 1px 0 rgba(255,255,255,0.015);
+}
+
+.auth-card-plain {
+  width: 100%;
+  max-width: 420px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 제일 로고 */
+
+.auth-logo-wrap {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 30px;
+  padding: 6px 0;
+  position: relative;
+  margin-left: -38px;
+}
+
+.auth-logo-wrap::after {
+  display: none;
+}
+
+/* 로고 크기 확대 */
+.auth-logo-img {
+  width: 230px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-card .auth-logo-wrap {
+  justify-content: flex-start;
+}
+
+.auth-card .auth-logo-img {
+  width: 215px;
+}
+
+.auth-header {
+  margin-bottom: 22px;
+  text-align: center;
+}
+
+.auth-header-left {
+  text-align: left;
+}
+
+.auth-header h1 {
+  margin: 8px 0 0;
+}
+
+.auth-form {
+  display: grid;
+  gap: 20px;
+}
+
+.auth-form .primary-btn {
+  margin-top: 12px;
+}
+
+.form-field {
+  display: grid;
+  gap: 10px;
+}
+
+.form-field label {
+  font-size: 13px;
+  color: #cfd6de;
+  font-family: "Stack Sans Headline", Arial, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.auth-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.10);
+  margin: 22px 0;
+}
+
+.auth-subsection h3 {
+  margin: 0 0 14px;
+}
+
+.auth-alert {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.auth-alert-error {
+  background: rgba(201, 74, 74, 0.12);
+  color: #ffbcbc;
+  border: 1px solid rgba(201, 74, 74, 0.30);
+}
+
+.auth-alert-info {
+  background: rgba(255,255,255,0.06);
+  color: #eef2f5;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.auth-alert-temp {
+  background: linear-gradient(135deg, #f3f6f9 0%, #d7dde4 22%, #b7bec8 48%, #eef2f6 72%, #a6afb9 100%);
+  color: #111317;
+  border: 1px solid rgba(255,255,255,0.16);
+}
+
+.auth-bottom-action {
+  display: flex;
+  justify-content: center;
+}
+
+.auth-bottom-action-left {
+  justify-content: flex-start;
+}
+
+.auth-link-btn {
+  min-width: 180px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #e3e8ee 0%, #c6ced7 22%, #98a3ae 48%, #e7ecf1 76%, #858f9a 100%);
+  color: #111317 !important;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.24);
+}
+
+.auth-sub-btn {
+  min-height: 44px;
+}
+
+/* auth 화면 전용 입력/버튼 분위기 강화 */
+.auth-shell .text-input-dark,
+.auth-shell-split .text-input-dark {
+  border: 1px solid rgba(255,255,255,0.12);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03)),
+    linear-gradient(135deg, rgba(210,218,227,0.05), rgba(255,255,255,0.01));
+  color: #f5f7fa;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.auth-shell .text-input-dark:focus,
+.auth-shell-split .text-input-dark:focus {
+  border-color: rgba(218,224,232,0.34);
+  box-shadow:
+    0 0 0 4px rgba(216,221,227,0.07),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.auth-shell .primary-btn,
+.auth-shell-split .primary-btn {
+  background: linear-gradient(135deg, #e3e8ee 0%, #c6ced7 22%, #98a3ae 48%, #e7ecf1 76%, #858f9a 100%);
+  color: #111317;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.24);
+}
+
+.auth-shell .chip-action,
+.auth-shell-split .chip-action {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+    linear-gradient(135deg, rgba(220,226,233,0.06), rgba(255,255,255,0.015));
+  color: #eef2f5;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.auth-shell .page-eyebrow,
+.auth-shell-split .page-eyebrow {
+  color: #cfd6de;
+}
+
+.auth-card .auth-form {
+  max-width: 480px;
+}
+
+
+@media (max-width: 980px) {
+  .auth-shell-split {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .auth-panel {
+    min-height: auto;
+  }
+
+  .auth-panel-brand,
+  .auth-panel-form {
+    padding: 28px;
+  }
+
+  .auth-logo-img {
+    width: 190px;
+  }
+
+  .auth-card .auth-logo-img {
+    width: 190px;
+  }
+}
+
+
+
+.password-field-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field-wrap .text-input-dark {
+  width: 100%;
+  padding-right: 92px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  border: 0;
+  background: transparent;
+  color: #cfd6de;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 8px;
+}

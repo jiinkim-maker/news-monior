@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="analysis-layout">
+  <section class="info-card">
+    <div class="card-label">Bookmarks</div>
+    <h3>Shared Bookmarks</h3>
+
+    <div class="history-search-grid">
+      <div class="monitor-filter-box">
+        <label for="bookmarkLevelFilter">Level</label>
+        <select id="bookmarkLevelFilter" class="text-input-dark">
+          <option value="" {% if current_level == "" %}selected{% endif %}>All</option>
+          <option value="1" {% if current_level == "1" %}selected{% endif %}>Yellow</option>
+          <option value="2" {% if current_level == "2" %}selected{% endif %}>Deep Red</option>
+        </select>
+      </div>
+
+      <div class="monitor-filter-box">
+        <label for="bookmarkTargetTypeFilter">Target Type</label>
+        <select id="bookmarkTargetTypeFilter" class="text-input-dark">
+          <option value="" {% if current_target_type == "" %}selected{% endif %}>All</option>
+          <option value="article" {% if current_target_type == "article" %}selected{% endif %}>Article</option>
+          <option value="media" {% if current_target_type == "media" %}selected{% endif %}>Media</option>
+          <option value="banner_history" {% if current_target_type == "banner_history" %}selected{% endif %}>Banner / KV</option>
+        </select>
+      </div>
+
+      <div class="monitor-filter-box">
+        <label for="bookmarkKeywordFilter">Search</label>
+        <input
+          id="bookmarkKeywordFilter"
+          class="text-input-dark"
+          type="text"
+          placeholder="title / short url / comment"
+          value="{{ current_keyword or '' }}"
+        />
+      </div>
+    </div>
+
+    {% if bookmark_items %}
+      <div class="table-wrap-dark history-table-wrap history-article-scroll-wrap">
+        <table class="result-table history-table history-sticky-table">
+          <thead>
+            <tr>
+              <th>No.</th>
+              <th>Bookmark</th>
+              <th>Target Type</th>
+              <th>Origin</th>
+              <th>Short URL</th>
+              <th>Title</th>
+              <th>Comment</th>
+              <th>Updated At</th>
+              <th>Updated By</th>
+              <th>Open</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in bookmark_items %}
+              <tr
+                class="bookmark-row-clickable"
+                data-target-key="{{ item.target_key }}"
+                data-target-type="{{ item.target_type }}"
+                data-short-url="{{ item.short_url or '' }}"
+                data-title="{{ item.title or '' }}"
+                data-note="{{ item.note or '' }}"
+                data-bookmark-level="{{ item.bookmark_level or 0 }}"
+              >
+                <td>{{ item.no }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="bookmark-btn level-{{ item.bookmark_level or 0 }}"
+                    data-target-key="{{ item.target_key }}"
+                    data-target-type="{{ item.target_type }}"
+                    data-short-url="{{ item.short_url or '' }}"
+                    data-title="{{ item.title or '' }}"
+                    data-note="{{ item.note or '' }}"
+                    data-bookmark-level="{{ item.bookmark_level or 0 }}"
+                    title="Edit Bookmark"
+                  >★</button>
+                </td>
+                <td>{{ item.target_type_label }}</td>
+                <td>{{ item.origin_label }}</td>
+                <td>{{ item.short_url or "-" }}</td>
+                <td>{{ item.title or "-" }}</td>
+                <td>{{ item.note or "-" }}</td>
+                <td>{{ item.display_updated_at }}</td>
+                <td>{{ item.updated_by or "-" }}</td>
+                <td>
+                  {% if item.open_url %}
+                    <a href="{{ item.open_url }}" target="_blank" rel="noopener noreferrer" class="embedded-preview-link">Open</a>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div id="bookmarkEditModal" class="history-modal hidden">
+        <div class="history-modal-backdrop" id="bookmarkEditModalBackdrop"></div>
+        <div class="history-modal-dialog bookmark-note-dialog">
+          <button type="button" class="history-modal-close" id="bookmarkEditModalClose">×</button>
+
+          <div class="detail-panel-head history-modal-head">
+            <p class="detail-eyebrow">BOOKMARK EDIT</p>
+            <h3 id="bookmarkEditTitle">Bookmark Setting</h3>
+          </div>
+
+          <div class="bookmark-level-row">
+            <button type="button" class="bookmark-edit-level-select level-1" data-level="1">Yellow</button>
+            <button type="button" class="bookmark-edit-level-select level-2" data-level="2">Deep Red</button>
+            <button type="button" class="bookmark-edit-level-select level-0" data-level="0">Clear</button>
+          </div>
+
+          <div class="monitor-filter-box">
+            <label for="bookmarkEditNoteInput">Comment</label>
+            <textarea id="bookmarkEditNoteInput" class="big-textarea bookmark-note-textarea" placeholder="Add note..."></textarea>
+          </div>
+
+          <div class="analysis-action-row bookmark-edit-action-row">
+            <button id="bookmarkEditSaveBtn" class="btn-metallic btn-metallic-md" type="button">Save</button>
+            <button id="bookmarkDeleteNoteBtn" class="btn-metallic btn-metallic-md" type="button">Delete Note Only</button>
+            <button id="bookmarkDeleteBtn" class="btn-metallic btn-metallic-md" type="button">Delete Bookmark</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="bookmarkDetailModal" class="history-modal hidden">
+        <div class="history-modal-backdrop" id="bookmarkDetailModalBackdrop"></div>
+        <div class="history-modal-dialog">
+          <button type="button" class="history-modal-close" id="bookmarkDetailModalClose">×</button>
+
+          <div class="detail-panel-head history-modal-head">
+            <p class="detail-eyebrow">BOOKMARK DETAIL</p>
+            <h3 id="bookmarkDetailTitle">Detail</h3>
+          </div>
+
+          <div id="bookmarkDetailBody"></div>
+        </div>
+      </div>
+    {% else %}
+      <p class="empty-note">북마크된 항목이 없습니다.</p>
+    {% endif %}
+  </section>
+</div>
+
+<script>
+  const bookmarksBaseUrl = "{{ url_for('bookmarks') }}";
+  let currentBookmarkRowButton = null;
+  let currentBookmarkEditLevel = 0;
+
+  function escapeHtml(value) {
+    if (value === null || value === undefined) return "";
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "-";
+    return String(value).replace("T", " ").slice(0, 16);
+  }
+
+  function renderLink(url, label = null) {
+    if (!url || url === "-") return "-";
+    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="bookmark-detail-link">${escapeHtml(label || url)}</a>`;
+  }
+
+  function applyBookmarkFilters() {
+    const level = document.getElementById("bookmarkLevelFilter").value;
+    const targetType = document.getElementById("bookmarkTargetTypeFilter").value;
+    const keyword = document.getElementById("bookmarkKeywordFilter").value.trim();
+
+    const params = new URLSearchParams();
+
+    if (level) params.set("level", level);
+    if (targetType) params.set("target_type", targetType);
+    if (keyword) params.set("keyword", keyword);
+
+    const query = params.toString();
+    window.location.href = query ? `${bookmarksBaseUrl}?${query}` : bookmarksBaseUrl;
+  }
+
+  async function loadBookmarkDetail(targetKey) {
+    const res = await fetch(`/api/shared-bookmarks/get?target_key=${encodeURIComponent(targetKey)}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "북마크 조회 중 오류가 발생했습니다.");
+    }
+
+    return data.bookmark || {};
+  }
+
+  async function openBookmarkEditModal(buttonEl) {
+    currentBookmarkRowButton = buttonEl;
+
+    try {
+      const bookmark = await loadBookmarkDetail(buttonEl.dataset.targetKey);
+
+      document.getElementById("bookmarkEditTitle").textContent =
+        bookmark.title || buttonEl.dataset.title || "Bookmark Setting";
+      document.getElementById("bookmarkEditNoteInput").value = bookmark.note || "";
+
+      currentBookmarkEditLevel = Number(bookmark.bookmark_level || 0);
+
+      document.querySelectorAll(".bookmark-edit-level-select").forEach(btn => {
+        btn.classList.toggle("selected", Number(btn.dataset.level) === currentBookmarkEditLevel);
+      });
+
+      document.getElementById("bookmarkEditModal").classList.remove("hidden");
+    } catch (e) {
+      console.error(e);
+      alert("북마크 정보를 불러오지 못했습니다.");
+    }
+  }
+
+  function closeBookmarkEditModal() {
+    document.getElementById("bookmarkEditModal").classList.add("hidden");
+    currentBookmarkRowButton = null;
+  }
+
+  async function saveBookmarkEdit(levelOverride = null, noteOverride = null) {
+    if (!currentBookmarkRowButton) return;
+
+    const targetKey = currentBookmarkRowButton.dataset.targetKey;
+    const targetType = currentBookmarkRowButton.dataset.targetType;
+    const shortUrl = currentBookmarkRowButton.dataset.shortUrl || "";
+    const title = currentBookmarkRowButton.dataset.title || "";
+
+    const bookmarkLevel = levelOverride !== null ? levelOverride : currentBookmarkEditLevel;
+    const note = noteOverride !== null ? noteOverride : document.getElementById("bookmarkEditNoteInput").value.trim();
+
+    try {
+      const res = await fetch("/api/shared-bookmarks/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          target_type: targetType,
+          target_key: targetKey,
+          short_url: shortUrl,
+          title: title,
+          bookmark_level: bookmarkLevel,
+          note: note,
+          extra: {}
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "북마크 저장 중 오류가 발생했습니다.");
+        return;
+      }
+
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      alert("서버 요청 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function openBookmarkDetailModal(row) {
+    const targetKey = row.dataset.targetKey;
+
+    try {
+      const res = await fetch(`/api/bookmarks/detail?target_key=${encodeURIComponent(targetKey)}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "상세 정보를 불러오지 못했습니다.");
+        return;
+      }
+
+      const detail = data.detail;
+      const targetType = data.target_type;
+      const bookmark = data.bookmark || {};
+      const body = document.getElementById("bookmarkDetailBody");
+
+      document.getElementById("bookmarkDetailTitle").textContent =
+        bookmark.title || row.dataset.title || "Detail";
+
+      if (targetType === "article") {
+        if (!detail) {
+          body.innerHTML = `<p class="empty-note">기사 상세 결과를 찾을 수 없습니다.</p>`;
+        } else {
+          const forbiddenList = detail.forbidden_findings || [];
+          const requiredList = detail.required_missing || [];
+
+          body.innerHTML = `
+            <div class="detail-meta-grid">
+              <div class="detail-meta-box"><span>Short URL</span><strong>${renderLink(detail.short_url || "-", detail.short_url || "-")}</strong></div>
+              <div class="detail-meta-box"><span>Title</span><strong>${escapeHtml(detail.title || "-")}</strong></div>
+              <div class="detail-meta-box"><span>Created By</span><strong>${escapeHtml(detail.created_by || "-")} / ${formatDateTime(detail.created_at)}</strong></div>
+              <div class="detail-meta-box"><span>Status</span><strong>${escapeHtml(detail.status || "-")}</strong></div>
+              <div class="detail-meta-box"><span>Forbidden Count</span><strong>${detail.forbidden_found_count || 0}</strong></div>
+              <div class="detail-meta-box"><span>Required Missing Count</span><strong>${detail.required_missing_count || 0}</strong></div>
+            </div>
+
+            <div class="detail-section">
+              <h4>Forbidden Findings</h4>
+              ${
+                forbiddenList.length
+                ? `<ul class="bookmark-inline-list">
+                    ${forbiddenList.map(item => `<li>${escapeHtml(item.word || "-")} : ${item.total_count || 0}개</li>`).join("")}
+                  </ul>`
+                : `<p class="empty-note">검출된 금지어가 없습니다.</p>`
+              }
+            </div>
+
+            <div class="detail-section">
+              <h4>Missing Required Words</h4>
+              ${
+                requiredList.length
+                ? `<ul class="bookmark-inline-list">
+                    ${requiredList.map(item => `<li>${escapeHtml(item.word || "-")} : 0개</li>`).join("")}
+                  </ul>`
+                : `<p class="empty-note">누락된 필수어가 없습니다.</p>`
+              }
+            </div>
+
+            <div class="detail-section">
+              <h4>Bookmark Comment</h4>
+              <div class="required-card">${escapeHtml(bookmark.note || "-")}</div>
+            </div>
+          `;
+        }
+      } else if (targetType === "media") {
+        if (!detail) {
+          body.innerHTML = `<p class="empty-note">미디어 상세 결과를 찾을 수 없습니다.</p>`;
+        } else {
+          body.innerHTML = `
+            <div class="bookmark-detail-table-wrap">
+              <table class="bookmark-detail-table">
+                <thead>
+                  <tr>
+                    <th>Short URL</th>
+                    <th>Article Title</th>
+                    <th>Media Type</th>
+                    <th>Filename</th>
+                    <th>Media URL</th>
+                    <th>Width</th>
+                    <th>Height</th>
+                    <th>Size</th>
+                    <th>Preview</th>
+                    <th>Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>${renderLink(detail.short_url || "-", detail.short_url || "-")}</td>
+                    <td>${escapeHtml(detail.article_title || "-")}</td>
+                    <td>${escapeHtml(detail.media_type || "-")}</td>
+                    <td>${escapeHtml(detail.filename || "-")}</td>
+                    <td>${renderLink(detail.media_url || "-", "Open")}</td>
+                    <td>${detail.width ?? "-"}</td>
+                    <td>${detail.height ?? "-"}</td>
+                    <td>${escapeHtml(detail.size_display || "-")}</td>
+                    <td>
+                      ${
+                        detail.preview_url && (detail.media_type === "image" || detail.media_type === "gif")
+                        ? `<img src="${escapeHtml(detail.preview_url)}" alt="preview" class="media-preview-thumb" />`
+                        : detail.preview_url && detail.media_type === "mp4"
+                        ? `<video class="media-preview-thumb video-preview" muted playsinline preload="metadata" controls><source src="${escapeHtml(detail.preview_url)}" type="video/mp4"></video>`
+                        : detail.preview_url
+                        ? renderLink(detail.preview_url, "Open")
+                        : "-"
+                      }
+                    </td>
+                    <td>${escapeHtml(detail.error || "-")}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="detail-section">
+              <h4>Bookmark Comment</h4>
+              <div class="required-card">${escapeHtml(bookmark.note || "-")}</div>
+            </div>
+          `;
+        }
+      } else if (targetType === "banner_history") {
+        if (!detail) {
+          body.innerHTML = `
+            <div class="detail-section">
+              <h4>Bookmark Comment</h4>
+              <div class="required-card">${escapeHtml(bookmark.note || "-")}</div>
+            </div>
+            <p class="empty-note">배너/KV 상세 결과를 찾을 수 없습니다.</p>
+          `;
+        } else {
+          const kvItems = (detail.kv_items || []).slice().sort((a, b) => (a.slot || 0) - (b.slot || 0));
+          const bannerItems = (detail.banner_items || []).slice().sort((a, b) => (a.slot || 0) - (b.slot || 0));
+
+          body.innerHTML = `
+            <div class="detail-meta-grid">
+              <div class="detail-meta-box"><span>Country</span><strong>${escapeHtml(detail.country || "-")}</strong></div>
+              <div class="detail-meta-box"><span>Region</span><strong>${escapeHtml(detail.region || "-")}</strong></div>
+              <div class="detail-meta-box"><span>Run Type</span><strong>${escapeHtml(detail.run_type || "-")}</strong></div>
+              <div class="detail-meta-box"><span>Created At</span><strong>${formatDateTime(detail.created_at)}</strong></div>
+              <div class="detail-meta-box"><span>Page URL</span><strong>${renderLink(detail.page_url || "-", "Open Page")}</strong></div>
+            </div>
+
+            <div class="detail-section">
+              <h4>KV Thumbnails</h4>
+              ${
+                kvItems.length
+                ? `<div class="bookmark-thumb-row">
+                    ${kvItems.map(item => `
+                      <div class="bookmark-thumb-card">
+                        <div class="bookmark-thumb-slot">Slot ${item.slot || "-"}</div>
+                        ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="kv">` : `<div class="empty-note">No Image</div>`}
+                      </div>
+                    `).join("")}
+                  </div>`
+                : `<p class="empty-note">저장된 KV 썸네일이 없습니다.</p>`
+              }
+            </div>
+
+            <div class="detail-section">
+              <h4>Banner Thumbnails</h4>
+              ${
+                bannerItems.length
+                ? `<div class="bookmark-thumb-row">
+                    ${bannerItems.map(item => `
+                      <div class="bookmark-thumb-card">
+                        <div class="bookmark-thumb-slot">Slot ${item.slot || "-"}</div>
+                        ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="banner">` : `<div class="empty-note">No Image</div>`}
+                      </div>
+                    `).join("")}
+                  </div>`
+                : `<p class="empty-note">저장된 Banner 썸네일이 없습니다.</p>`
+              }
+            </div>
+
+            <div class="detail-section">
+              <h4>Bookmark Comment</h4>
+              <div class="required-card">${escapeHtml(bookmark.note || "-")}</div>
+            </div>
+          `;
+        }
+      } else {
+        body.innerHTML = `
+          <div class="detail-section">
+            <h4>Bookmark Comment</h4>
+            <div class="required-card">${escapeHtml(bookmark.note || "-")}</div>
+          </div>
+        `;
+      }
+
+      document.getElementById("bookmarkDetailModal").classList.remove("hidden");
+    } catch (e) {
+      console.error(e);
+      alert("상세 정보를 불러오는 중 오류가 발생했습니다.");
+    }
+  }
+
+  function closeBookmarkDetailModal() {
+    document.getElementById("bookmarkDetailModal").classList.add("hidden");
+  }
+
+  document.getElementById("bookmarkLevelFilter").addEventListener("change", applyBookmarkFilters);
+  document.getElementById("bookmarkTargetTypeFilter").addEventListener("change", applyBookmarkFilters);
+  document.getElementById("bookmarkKeywordFilter").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      applyBookmarkFilters();
+    }
+  });
+
+  document.querySelectorAll(".bookmark-btn").forEach(btn => {
+    btn.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      await openBookmarkEditModal(btn);
+    });
+  });
+
+  document.querySelectorAll(".bookmark-row-clickable").forEach(row => {
+    row.addEventListener("click", async (event) => {
+      if (event.target.closest(".bookmark-btn")) return;
+      if (event.target.closest("a")) return;
+      await openBookmarkDetailModal(row);
+    });
+  });
+
+  document.querySelectorAll(".bookmark-edit-level-select").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentBookmarkEditLevel = Number(btn.dataset.level);
+      document.querySelectorAll(".bookmark-edit-level-select").forEach(el => {
+        el.classList.toggle("selected", el === btn);
+      });
+    });
+  });
+
+  document.getElementById("bookmarkEditSaveBtn").addEventListener("click", async () => {
+    await saveBookmarkEdit();
+  });
+
+  document.getElementById("bookmarkDeleteNoteBtn").addEventListener("click", async () => {
+    await saveBookmarkEdit(null, "");
+  });
+
+  document.getElementById("bookmarkDeleteBtn").addEventListener("click", async () => {
+    await saveBookmarkEdit(0, "");
+  });
+
+  document.getElementById("bookmarkEditModalClose").addEventListener("click", closeBookmarkEditModal);
+  document.getElementById("bookmarkEditModalBackdrop").addEventListener("click", closeBookmarkEditModal);
+
+  document.getElementById("bookmarkDetailModalClose").addEventListener("click", closeBookmarkDetailModal);
+  document.getElementById("bookmarkDetailModalBackdrop").addEventListener("click", closeBookmarkDetailModal);
+</script>
+{% endblock %}

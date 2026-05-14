@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+</head>
+<body class="app-body">
+  <div class="auth-shell auth-shell-split">
+    <div class="auth-panel auth-panel-brand">
+      <div class="auth-brand-inner">
+        <div class="auth-logo-wrap">
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            alt="Logo"
+            class="auth-logo-img"
+          >
+        </div>
+
+        <div class="auth-brand-copy">
+          <p class="page-eyebrow">NEWS MONITOR PLATFORM</p>
+          <h1>Welcome Back</h1>
+          <p class="auth-brand-desc">
+            Keyword Analysis, Image Size Analysis, Banner / KV Screening까지
+            하나의 운영 화면에서 관리할 수 있습니다.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-panel auth-panel-form">
+      <div class="auth-card auth-card-plain">
+        <div class="auth-header auth-header-left">
+          <p class="page-eyebrow">LOGIN</p>
+          <h1>Sign In</h1>
+        </div>
+
+        {% if error_message %}
+          <div class="auth-alert auth-alert-error">{{ error_message }}</div>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+          <div class="form-field">
+            <label for="username">ID</label>
+            <input id="username" name="username" type="text" class="text-input-dark" required>
+          </div>
+
+          <div class="form-field">
+            <label for="password">Password</label>
+            <div class="password-field-wrap">
+                <input id="password" name="password" type="password" class="text-input-dark" required>
+                <button type="button" class="password-toggle-btn" data-target="password">Show</button>
+            </div>
+          </div>
+
+          <button type="submit" class="primary-btn">Login</button>
+        </form>
+
+        <div class="auth-divider"></div>
+
+        <div class="auth-bottom-action auth-bottom-action-left">
+          <a href="{{ url_for('recover_password') }}" class="auth-link-btn">Recover Password</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+
+<script>
+  document.querySelectorAll(".password-toggle-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      if (!input) return;
+
+      const isPassword = input.type === "password";
+      input.type = isPassword ? "text" : "password";
+      btn.textContent = isPassword ? "Hide" : "Show";
+    });
+  });
+</script>
