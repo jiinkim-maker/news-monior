@@ -8,10 +8,18 @@ from app.utils.security import hash_password
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "news_monitor.db")
 
+# ---------------- backup ----------------
+BACKUP_DIR = os.path.join(BASE_DIR, "backups")
+BACKUP_KEEP = 30  # 최근 30개 백업만 보관
+
 
 def get_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    # 동시성/안정성 향상 PRAGMA
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    conn.execute("PRAGMA busy_timeout=5000;")
     return conn
 
 
@@ -19,7 +27,55 @@ def now_iso():
     return datetime.now().isoformat(timespec="seconds")
 
 
+def _cleanup_old_backups(keep: int = BACKUP_KEEP):
+    if not os.path.isdir(BACKUP_DIR):
+        return
+
+    files = sorted(
+        f for f in os.listdir(BACKUP_DIR)
+        if f.startswith("news_monitor_") and f.endswith(".db")
+    )
+
+    if len(files) <= keep:
+        return
+
+    for old_name in files[:len(files) - keep]:
+        try:
+            os.remove(os.path.join(BACKUP_DIR, old_name))
+        except OSError:
+            pass
+
+
+def backup_db():
+    """현재 DB를 timestamp 이름으로 백업한다.
+    WAL 환경에서도 안전한 sqlite 온라인 백업 API를 사용한다."""
+    if not os.path.exists(DB_PATH):
+        return None
+
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = os.path.join(BACKUP_DIR, f"news_monitor_{timestamp}.db")
+
+    src = sqlite3.connect(DB_PATH)
+    dst = sqlite3.connect(backup_path)
+    try:
+        with dst:
+            src.backup(dst)
+    finally:
+        dst.close()
+        src.close()
+
+    _cleanup_old_backups()
+    return backup_path
+
+
 def init_db():
+    # 기존 DB가 있으면 테이블 작업 전에 먼저 백업 (앱 시작/리로드마다 1개 생성)
+    try:
+        backup_db()
+    except Exception:
+        pass
+
     conn = get_connection()
     cur = conn.cursor()
 
@@ -1294,23 +1350,6 @@ def list_shared_bookmarks(
         results.append(item)
 
     return results
-
-
-def get_recent_media_analysis_items(limit: int = 20):
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-    SELECT *
-    FROM media_analysis_items
-    ORDER BY id DESC
-    LIMIT ?
-    """, (limit,))
-
-    rows = cur.fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
-
 
 
 def get_banner_monitor_snapshot_by_id(snapshot_id: int):

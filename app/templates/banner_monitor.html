@@ -1,6 +1,4 @@
-{% extends "base.html" %}
-
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="analysis-layout">
   <section class="info-card">
     <div class="card-label">Control</div>
@@ -10,9 +8,27 @@
     </p>
 
     <div class="analysis-action-row">
-      <button id="runBannerMonitorBtn" class="btn-metallic btn-metallic-lg" type="button">전체 검사</button>
-      <button id="runBannerAllBtn" class="btn-metallic btn-metallic-md monitor-top-action-btn" type="button">전체 배너 검사</button>
-      <button id="runKvAllBtn" class="btn-metallic btn-metallic-md monitor-top-action-btn" type="button">전체 KV 검사</button>
+      <button
+        id="runBannerMonitorBtn"
+        class="btn-metallic btn-metallic-lg"
+        type="button"
+      >
+        전체 검사
+      </button>
+      <button
+        id="runBannerAllBtn"
+        class="btn-metallic btn-metallic-md monitor-top-action-btn"
+        type="button"
+      >
+        전체 배너 검사
+      </button>
+      <button
+        id="runKvAllBtn"
+        class="btn-metallic btn-metallic-md monitor-top-action-btn"
+        type="button"
+      >
+        전체 KV 검사
+      </button>
     </div>
   </section>
 
@@ -25,128 +41,216 @@
         <label>Region</label>
 
         <div class="custom-region-select" id="customRegionSelect">
-          <button type="button" class="custom-region-trigger" id="regionTriggerBtn">
+          <button
+            type="button"
+            class="custom-region-trigger"
+            id="regionTriggerBtn"
+          >
             <span id="regionTriggerText">All Regions</span>
             <span class="custom-region-arrow">▾</span>
           </button>
 
           <div class="custom-region-menu hidden" id="regionMenu">
-            <button type="button" class="custom-region-option active" data-value="">All Regions</button>
-            {% set regions = monitor_targets | map(attribute='region') | list | unique | list %}
-            {% for region in regions %}
-              <button type="button" class="custom-region-option" data-value="{{ region }}">{{ region }}</button>
+            <button
+              type="button"
+              class="custom-region-option active"
+              data-value=""
+            >
+              All Regions
+            </button>
+            {% set regions = monitor_targets | map(attribute='region') | list |
+            unique | list %} {% for region in regions %}
+            <button
+              type="button"
+              class="custom-region-option"
+              data-value="{{ region }}"
+            >
+              {{ region }}
+            </button>
             {% endfor %}
           </div>
         </div>
 
-        <input type="hidden" id="regionFilter" value="">
+        <input type="hidden" id="regionFilter" value="" />
       </div>
 
       <div class="monitor-filter-box">
         <label for="countrySearch">Country Search</label>
-        <input id="countrySearch" class="text-input-dark" type="text" placeholder="Search country..." />
+        <input
+          id="countrySearch"
+          class="text-input-dark"
+          type="text"
+          placeholder="Search country..."
+        />
       </div>
     </div>
 
     <div class="analysis-action-row">
-      <button id="runFilteredBannerBtn" class="btn-metallic btn-metallic-md monitor-top-action-btn" type="button">선택 대상 전체 배너 검사</button>
-      <button id="runFilteredKvBtn" class="btn-metallic btn-metallic-md monitor-top-action-btn" type="button">선택 대상 전체 KV 검사</button>
+      <button
+        id="runFilteredBannerBtn"
+        class="btn-metallic btn-metallic-md monitor-top-action-btn"
+        type="button"
+      >
+        선택 대상 전체 배너 검사
+      </button>
+      <button
+        id="runFilteredKvBtn"
+        class="btn-metallic btn-metallic-md monitor-top-action-btn"
+        type="button"
+      >
+        선택 대상 전체 KV 검사
+      </button>
     </div>
 
     <div class="table-wrap-dark">
       <table class="result-table banner-monitor-table">
         <thead>
           <tr>
-            <th>Region</th>
-            <th>Country</th>
-            <th>Code</th>
-            <th>Generation</th>
-            <th>Change</th>
-            <th>KV Changed</th>
-            <th>Banner Changed</th>
-            <th>Latest Checked</th>
-            <th>Page URL</th>
-            <th>All</th>
-            <th>Banner</th>
-            <th>KV</th>
+            <th style="white-space: nowrap">Region</th>
+            <th style="white-space: nowrap">Country</th>
+            <th style="white-space: nowrap">Code</th>
+            <th style="white-space: nowrap">Generation</th>
+            <th style="white-space: nowrap">Change</th>
+            <th style="white-space: nowrap">KV Changed</th>
+            <th style="white-space: nowrap">Banner Changed</th>
+            <th style="white-space: nowrap">Latest Checked</th>
+            <th style="white-space: nowrap">Page URL</th>
+            <th style="white-space: nowrap">All</th>
+            <th style="white-space: nowrap">Banner</th>
+            <th style="white-space: nowrap">KV</th>
           </tr>
         </thead>
         <tbody id="monitorActionTableBody">
-          {% for target in monitor_targets %}
-            {% set status = monitor_status_map.get(target.code, {}) %}
-            <tr class="monitor-target-row"
+          {% for target in monitor_targets %} {% set status =
+          monitor_status_map.get(target.code, {}) %}
+          <tr
+            class="monitor-target-row"
+            data-code="{{ target.code }}"
+            data-country-display="{{ target.country }}"
+            data-region-display="{{ target.region }}"
+            data-country-display-raw="{{ target.country }}"
+            data-region="{{ target.region|lower }}"
+            data-country="{{ target.country|lower }}"
+          >
+            <td>{{ target.region }}</td>
+            <td>{{ target.country }}</td>
+            <td>{{ target.code }}</td>
+            <td>{{ target.generation }}</td>
+            <td>
+              {% if status.get("has_snapshot") %} {% if status.get("has_change")
+              %}
+              <span class="status-pill status-flagged">Changed</span>
+              {% else %}
+              <span class="status-pill status-clean">No Change</span>
+              {% endif %} {% else %}
+              <span class="status-pill status-clean">No History</span>
+              {% endif %}
+            </td>
+            <td>{{ status.get("kv_changed_count", 0) }}</td>
+            <td>{{ status.get("banner_changed_count", 0) }}</td>
+            <td>{{ status.get("latest_checked_at", "-") }}</td>
+            <td
+              style="
+                max-width: 180px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              "
+            >
+              <a
+                href="{{ target.page_url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="table-link"
+                title="{{ target.page_url }}"
+              >
+                {{ target.page_url }}
+              </a>
+            </td>
+            <td>
+              <button
+                class="btn-metallic btn-metallic-sm monitor-run-one-btn"
                 data-code="{{ target.code }}"
-                data-country-display="{{ target.country }}"
-                data-region-display="{{ target.region }}"
-                data-country-display-raw="{{ target.country }}"
-                data-region="{{ target.region|lower }}"
-                data-country="{{ target.country|lower }}">
-              <td>{{ target.region }}</td>
-              <td>{{ target.country }}</td>
-              <td>{{ target.code }}</td>
-              <td>{{ target.generation }}</td>
-              <td>
-                {% if status.get("has_snapshot") %}
-                  {% if status.get("has_change") %}
-                    <span class="status-pill status-flagged">Changed</span>
-                  {% else %}
-                    <span class="status-pill status-clean">No Change</span>
-                  {% endif %}
-                {% else %}
-                  <span class="status-pill status-clean">No History</span>
-                {% endif %}
-              </td>
-              <td>{{ status.get("kv_changed_count", 0) }}</td>
-              <td>{{ status.get("banner_changed_count", 0) }}</td>
-              <td>{{ status.get("latest_checked_at", "-") }}</td>
-              <td>
-                <a href="{{ target.page_url }}" target="_blank" rel="noopener noreferrer" class="table-link">
-                  {{ target.page_url }}
-                </a>
-              </td>
-              <td>
-                <button class="btn-metallic btn-metallic-sm monitor-run-one-btn" data-code="{{ target.code }}" data-mode="all">전체 검사</button>
-              </td>
-              <td>
-                <button class="btn-metallic btn-metallic-sm monitor-run-one-btn" data-code="{{ target.code }}" data-mode="banner">배너 검사</button>
-              </td>
-              <td>
-                <button class="btn-metallic btn-metallic-sm monitor-run-one-btn" data-code="{{ target.code }}" data-mode="kv">KV 검사</button>
-              </td>
-            </tr>
+                data-mode="all"
+              >
+                전체 검사
+              </button>
+            </td>
+            <td>
+              <button
+                class="btn-metallic btn-metallic-sm monitor-run-one-btn"
+                data-code="{{ target.code }}"
+                data-mode="banner"
+              >
+                배너 검사
+              </button>
+            </td>
+            <td>
+              <button
+                class="btn-metallic btn-metallic-sm monitor-run-one-btn"
+                data-code="{{ target.code }}"
+                data-mode="kv"
+              >
+                KV 검사
+              </button>
+            </td>
+          </tr>
 
-            <tr class="inline-history-row hidden" id="inline-history-{{ target.code }}">
-              <td colspan="12">
-                <div class="inline-history-shell">
-                  <div class="inline-history-header">
-                    <div>
-                      <p class="detail-eyebrow">COUNTRY HISTORY</p>
-                      <h3 id="historyTitle-{{ target.code }}">{{ target.country }} History</h3>
-                    </div>
+          <tr
+            class="inline-history-row hidden"
+            id="inline-history-{{ target.code }}"
+          >
+            <td colspan="12">
+              <div class="inline-history-shell">
+                <div class="inline-history-header">
+                  <div>
+                    <p class="detail-eyebrow">COUNTRY HISTORY</p>
+                    <h3 id="historyTitle-{{ target.code }}">
+                      {{ target.country }} History
+                    </h3>
+                  </div>
+                </div>
+
+                <div class="inline-history-layout">
+                  <div class="inline-history-left">
+                    <div
+                      class="history-list"
+                      id="historyList-{{ target.code }}"
+                    ></div>
                   </div>
 
-                  <div class="inline-history-layout">
-                    <div class="inline-history-left">
-                      <div class="history-list" id="historyList-{{ target.code }}"></div>
+                  <div class="inline-history-right">
+                    <div
+                      class="compare-summary hidden"
+                      id="compareSummary-{{ target.code }}"
+                    ></div>
+
+                    <div
+                      id="kvSection-{{ target.code }}"
+                      class="compare-section hidden"
+                    >
+                      <h4>KV Before / After</h4>
+                      <div
+                        class="compare-grid"
+                        id="kvCompareGrid-{{ target.code }}"
+                      ></div>
                     </div>
 
-                    <div class="inline-history-right">
-                      <div class="compare-summary hidden" id="compareSummary-{{ target.code }}"></div>
-
-                      <div id="kvSection-{{ target.code }}" class="compare-section hidden">
-                        <h4>KV Before / After</h4>
-                        <div class="compare-grid" id="kvCompareGrid-{{ target.code }}"></div>
-                      </div>
-
-                      <div id="bannerSection-{{ target.code }}" class="compare-section hidden">
-                        <h4>Banner Before / After</h4>
-                        <div class="compare-grid" id="bannerCompareGrid-{{ target.code }}"></div>
-                      </div>
+                    <div
+                      id="bannerSection-{{ target.code }}"
+                      class="compare-section hidden"
+                    >
+                      <h4>Banner Before / After</h4>
+                      <div
+                        class="compare-grid"
+                        id="bannerCompareGrid-{{ target.code }}"
+                      ></div>
                     </div>
                   </div>
                 </div>
-              </td>
-            </tr>
+              </div>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -158,94 +262,100 @@
     <h3>Most Recent Screening Result</h3>
 
     {% if latest_run_summary.has_run %}
+    <div class="meta-grid">
+      <div class="meta-box">
+        <span>Run At</span>
+        <strong>{{ latest_run_summary.run_at }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Run Type</span>
+        <strong>{{ latest_run_summary.run_type_label }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Scope</span>
+        <strong>{{ latest_run_summary.scope_label }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Target Count</span>
+        <strong>{{ latest_run_summary.target_count }}</strong>
+      </div>
+      <div class="meta-box">
+        <span>Changed Targets</span>
+        <strong>{{ latest_run_summary.changed_targets }}</strong>
+      </div>
+    </div>
+
+    {% if latest_run_summary.kv_stats %}
+    <div class="detail-section">
+      <h4>KV Summary</h4>
       <div class="meta-grid">
         <div class="meta-box">
-          <span>Run At</span>
-          <strong>{{ latest_run_summary.run_at }}</strong>
+          <span>Changed Slots</span>
+          <strong>{{ latest_run_summary.kv_stats.changed_slots }}</strong>
         </div>
         <div class="meta-box">
-          <span>Run Type</span>
-          <strong>{{ latest_run_summary.run_type_label }}</strong>
+          <span>Image Changed</span>
+          <strong>{{ latest_run_summary.kv_stats.image_changed }}</strong>
         </div>
         <div class="meta-box">
-          <span>Scope</span>
-          <strong>{{ latest_run_summary.scope_label }}</strong>
+          <span>Landing Changed</span>
+          <strong>{{ latest_run_summary.kv_stats.landing_changed }}</strong>
         </div>
         <div class="meta-box">
-          <span>Target Count</span>
-          <strong>{{ latest_run_summary.target_count }}</strong>
+          <span>Title Changed</span>
+          <strong>{{ latest_run_summary.kv_stats.title_changed }}</strong>
         </div>
         <div class="meta-box">
-          <span>Changed Targets</span>
-          <strong>{{ latest_run_summary.changed_targets }}</strong>
+          <span>Error Count</span>
+          <strong>{{ latest_run_summary.kv_stats.error_count }}</strong>
         </div>
       </div>
-
-      {% if latest_run_summary.kv_stats %}
-        <div class="detail-section">
-          <h4>KV Summary</h4>
-          <div class="meta-grid">
-            <div class="meta-box">
-              <span>Changed Slots</span>
-              <strong>{{ latest_run_summary.kv_stats.changed_slots }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Image Changed</span>
-              <strong>{{ latest_run_summary.kv_stats.image_changed }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Landing Changed</span>
-              <strong>{{ latest_run_summary.kv_stats.landing_changed }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Title Changed</span>
-              <strong>{{ latest_run_summary.kv_stats.title_changed }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Error Count</span>
-              <strong>{{ latest_run_summary.kv_stats.error_count }}</strong>
-            </div>
-          </div>
+    </div>
+    {% endif %} {% if latest_run_summary.banner_stats %}
+    <div class="detail-section">
+      <h4>Banner Summary</h4>
+      <div class="meta-grid">
+        <div class="meta-box">
+          <span>Changed Slots</span>
+          <strong>{{ latest_run_summary.banner_stats.changed_slots }}</strong>
         </div>
-      {% endif %}
-
-      {% if latest_run_summary.banner_stats %}
-        <div class="detail-section">
-          <h4>Banner Summary</h4>
-          <div class="meta-grid">
-            <div class="meta-box">
-              <span>Changed Slots</span>
-              <strong>{{ latest_run_summary.banner_stats.changed_slots }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Image Changed</span>
-              <strong>{{ latest_run_summary.banner_stats.image_changed }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Landing Changed</span>
-              <strong>{{ latest_run_summary.banner_stats.landing_changed }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Title Changed</span>
-              <strong>{{ latest_run_summary.banner_stats.title_changed }}</strong>
-            </div>
-            <div class="meta-box">
-              <span>Error Count</span>
-              <strong>{{ latest_run_summary.banner_stats.error_count }}</strong>
-            </div>
-          </div>
+        <div class="meta-box">
+          <span>Image Changed</span>
+          <strong>{{ latest_run_summary.banner_stats.image_changed }}</strong>
         </div>
-      {% endif %}
-    {% else %}
-      <p class="empty-note">최근 검사 결과가 없습니다.</p>
+        <div class="meta-box">
+          <span>Landing Changed</span>
+          <strong>{{ latest_run_summary.banner_stats.landing_changed }}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Title Changed</span>
+          <strong>{{ latest_run_summary.banner_stats.title_changed }}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Error Count</span>
+          <strong>{{ latest_run_summary.banner_stats.error_count }}</strong>
+        </div>
+      </div>
+    </div>
+    {% endif %} {% else %}
+    <p class="empty-note">최근 검사 결과가 없습니다.</p>
     {% endif %}
   </section>
 </div>
 
 <div id="bannerBookmarkNoteModal" class="history-modal hidden">
-  <div class="history-modal-backdrop" id="bannerBookmarkNoteModalBackdrop"></div>
+  <div
+    class="history-modal-backdrop"
+    id="bannerBookmarkNoteModalBackdrop"
+  ></div>
   <div class="history-modal-dialog bookmark-note-dialog">
-    <button type="button" class="history-modal-close" id="bannerBookmarkNoteModalClose">×</button>
+    <button
+      type="button"
+      class="history-modal-close"
+      id="bannerBookmarkNoteModalClose"
+    >
+      ×
+    </button>
 
     <div class="detail-panel-head history-modal-head">
       <p class="detail-eyebrow">BANNER / KV BOOKMARK</p>
@@ -253,18 +363,46 @@
     </div>
 
     <div class="bookmark-level-row">
-      <button type="button" class="banner-bookmark-level-select level-1" data-level="1">Yellow</button>
-      <button type="button" class="banner-bookmark-level-select level-2" data-level="2">Deep Red</button>
-      <button type="button" class="banner-bookmark-level-select level-0" data-level="0">Clear</button>
+      <button
+        type="button"
+        class="banner-bookmark-level-select level-1"
+        data-level="1"
+      >
+        Yellow
+      </button>
+      <button
+        type="button"
+        class="banner-bookmark-level-select level-2"
+        data-level="2"
+      >
+        Deep Red
+      </button>
+      <button
+        type="button"
+        class="banner-bookmark-level-select level-0"
+        data-level="0"
+      >
+        Clear
+      </button>
     </div>
 
     <div class="monitor-filter-box">
       <label for="bannerBookmarkNoteInput">Comment</label>
-      <textarea id="bannerBookmarkNoteInput" class="big-textarea bookmark-note-textarea" placeholder="Add note..."></textarea>
+      <textarea
+        id="bannerBookmarkNoteInput"
+        class="big-textarea bookmark-note-textarea"
+        placeholder="Add note..."
+      ></textarea>
     </div>
 
     <div class="analysis-action-row">
-      <button id="bannerBookmarkSaveBtn" class="btn-metallic btn-metallic-md" type="button">Save</button>
+      <button
+        id="bannerBookmarkSaveBtn"
+        class="btn-metallic btn-metallic-md"
+        type="button"
+      >
+        Save
+      </button>
     </div>
   </div>
 </div>
@@ -277,7 +415,9 @@
   const COUNTRY_STORAGE_KEY = "bannerMonitorCountrySearch";
 
   async function loadSharedBookmark(targetKey) {
-    const res = await fetch(`/api/shared-bookmarks/get?target_key=${encodeURIComponent(targetKey)}`);
+    const res = await fetch(
+      `/api/shared-bookmarks/get?target_key=${encodeURIComponent(targetKey)}`,
+    );
     const data = await res.json();
 
     if (!res.ok) {
@@ -295,15 +435,23 @@
 
       document.getElementById("bannerBookmarkNoteTitle").textContent =
         bookmark.title || buttonEl.dataset.title || "Bookmark Setting";
-      document.getElementById("bannerBookmarkNoteInput").value = bookmark.note || "";
+      document.getElementById("bannerBookmarkNoteInput").value =
+        bookmark.note || "";
 
       currentBannerBookmarkLevel = Number(bookmark.bookmark_level || 0);
 
-      document.querySelectorAll(".banner-bookmark-level-select").forEach(btn => {
-        btn.classList.toggle("selected", Number(btn.dataset.level) === currentBannerBookmarkLevel);
-      });
+      document
+        .querySelectorAll(".banner-bookmark-level-select")
+        .forEach((btn) => {
+          btn.classList.toggle(
+            "selected",
+            Number(btn.dataset.level) === currentBannerBookmarkLevel,
+          );
+        });
 
-      document.getElementById("bannerBookmarkNoteModal").classList.remove("hidden");
+      document
+        .getElementById("bannerBookmarkNoteModal")
+        .classList.remove("hidden");
     } catch (e) {
       console.error(e);
       alert("북마크 정보를 불러오지 못했습니다.");
@@ -320,13 +468,15 @@
 
     const targetKey = currentBannerBookmarkButton.dataset.targetKey;
     const title = currentBannerBookmarkButton.dataset.title || "";
-    const note = document.getElementById("bannerBookmarkNoteInput").value.trim();
+    const note = document
+      .getElementById("bannerBookmarkNoteInput")
+      .value.trim();
 
     try {
       const res = await fetch("/api/shared-bookmarks/save", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           target_type: "banner_history",
@@ -335,8 +485,8 @@
           title: title,
           bookmark_level: currentBannerBookmarkLevel,
           note: note,
-          extra: {}
-        })
+          extra: {},
+        }),
       });
 
       const data = await res.json();
@@ -346,7 +496,11 @@
         return;
       }
 
-      currentBannerBookmarkButton.classList.remove("level-0", "level-1", "level-2");
+      currentBannerBookmarkButton.classList.remove(
+        "level-0",
+        "level-1",
+        "level-2",
+      );
       currentBannerBookmarkButton.classList.add(`level-${data.bookmark_level}`);
       currentBannerBookmarkButton.dataset.note = note;
 
@@ -367,11 +521,37 @@
       .replaceAll("'", "&#039;");
   }
 
+  // 슬롯 아이템의 랜딩 URL을 '기사명 (YY/MM/DD 발행)' 텍스트 + 하이퍼링크로 렌더링.
+  // published_at_normalized 값:
+  //   "YYYY-MM-DD" → 기사명 (YY/MM/DD 발행)
+  //   "home-page"  → 기사명 (Home-page)
+  //   없음(구 스냅샷) → 기사명만 표시
+  function renderLandingLink(item) {
+    if (!item?.landing_url) return "-";
+
+    const title = item.title || "";
+    const dateNorm = item.published_at_normalized || "";
+
+    let label;
+    if (dateNorm === "home-page") {
+      label = title ? `${title} (Home-page)` : "(Home-page)";
+    } else if (dateNorm) {
+      const parts = dateNorm.split("-");
+      const yy = parts[0].slice(2); // "2026" → "26"
+      const formatted = `${yy}/${parts[1]}/${parts[2]}`; // "26/05/01"
+      label = title ? `${title} (${formatted} 발행)` : `(${formatted} 발행)`;
+    } else {
+      label = title || item.landing_url;
+    }
+
+    return `<a href="${escapeHtml(item.landing_url)}" target="_blank" rel="noopener noreferrer" class="table-link" style="word-break: break-word;">${escapeHtml(label)}</a>`;
+  }
+
   function getVisibleTargetCodes() {
     const rows = Array.from(document.querySelectorAll(".monitor-target-row"));
     return rows
-      .filter(row => row.style.display !== "none")
-      .map(row => row.dataset.code);
+      .filter((row) => row.style.display !== "none")
+      .map((row) => row.dataset.code);
   }
 
   function getCurrentScopeLabel() {
@@ -392,7 +572,7 @@
     const regionTriggerText = document.getElementById("regionTriggerText");
     regionTriggerText.textContent = regionValue || "All Regions";
 
-    document.querySelectorAll(".custom-region-option").forEach(btn => {
+    document.querySelectorAll(".custom-region-option").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.value === regionValue);
       if (!regionValue && btn.dataset.value === "") {
         btn.classList.add("active");
@@ -401,8 +581,14 @@
   }
 
   function saveFilterState() {
-    localStorage.setItem(REGION_STORAGE_KEY, document.getElementById("regionFilter").value);
-    localStorage.setItem(COUNTRY_STORAGE_KEY, document.getElementById("countrySearch").value);
+    localStorage.setItem(
+      REGION_STORAGE_KEY,
+      document.getElementById("regionFilter").value,
+    );
+    localStorage.setItem(
+      COUNTRY_STORAGE_KEY,
+      document.getElementById("countrySearch").value,
+    );
   }
 
   function restoreFilterState() {
@@ -420,17 +606,24 @@
   }
 
   function filterMonitorRows() {
-    const regionValue = document.getElementById("regionFilter").value.toLowerCase();
-    const countryValue = document.getElementById("countrySearch").value.trim().toLowerCase();
+    const regionValue = document
+      .getElementById("regionFilter")
+      .value.toLowerCase();
+    const countryValue = document
+      .getElementById("countrySearch")
+      .value.trim()
+      .toLowerCase();
 
-    document.querySelectorAll(".monitor-target-row").forEach(row => {
+    document.querySelectorAll(".monitor-target-row").forEach((row) => {
       const rowRegion = row.dataset.region || "";
       const rowCountry = row.dataset.country || "";
       const regionMatch = !regionValue || rowRegion === regionValue;
       const countryMatch = !countryValue || rowCountry.includes(countryValue);
-      row.style.display = (regionMatch && countryMatch) ? "" : "none";
+      row.style.display = regionMatch && countryMatch ? "" : "none";
 
-      const inlineRow = document.getElementById(`inline-history-${row.dataset.code}`);
+      const inlineRow = document.getElementById(
+        `inline-history-${row.dataset.code}`,
+      );
       if (row.style.display === "none" && inlineRow) {
         inlineRow.classList.add("hidden");
       }
@@ -440,16 +633,24 @@
   }
 
   function compareItems(previousItems, currentItems) {
-    const prevMap = new Map((previousItems || []).map(item => [item.slot, item]));
-    const currMap = new Map((currentItems || []).map(item => [item.slot, item]));
-    const allSlots = Array.from(new Set([...prevMap.keys(), ...currMap.keys()])).sort((a, b) => a - b);
+    const prevMap = new Map(
+      (previousItems || []).map((item) => [item.slot, item]),
+    );
+    const currMap = new Map(
+      (currentItems || []).map((item) => [item.slot, item]),
+    );
+    const allSlots = Array.from(
+      new Set([...prevMap.keys(), ...currMap.keys()]),
+    ).sort((a, b) => a - b);
 
-    return allSlots.map(slot => {
+    return allSlots.map((slot) => {
       const before = prevMap.get(slot) || null;
       const after = currMap.get(slot) || null;
 
-      const imageChanged = (before?.image_url || "") !== (after?.image_url || "");
-      const landingChanged = (before?.landing_url || "") !== (after?.landing_url || "");
+      const imageChanged =
+        (before?.image_url || "") !== (after?.image_url || "");
+      const landingChanged =
+        (before?.landing_url || "") !== (after?.landing_url || "");
       const titleChanged = (before?.title || "") !== (after?.title || "");
       const landingError = after ? !Boolean(after.landing_ok) : false;
 
@@ -461,12 +662,18 @@
         landingChanged,
         titleChanged,
         landingError,
-        changed: imageChanged || landingChanged || titleChanged || landingError
+        changed: imageChanged || landingChanged || titleChanged || landingError,
       };
     });
   }
 
-  function renderSingleSnapshotCard(item, slotLabel, snapshotType, snapshotTime, flags) {
+  function renderSingleSnapshotCard(
+    item,
+    slotLabel,
+    snapshotType,
+    snapshotTime,
+    flags,
+  ) {
     return `
       <div class="snapshot-card">
         <div class="snapshot-card-head">
@@ -478,8 +685,7 @@
         </div>
 
         <div class="snapshot-card-body">
-          <p><strong>Title</strong><br>${escapeHtml(item?.title || "-")}</p>
-          <p><strong>Landing</strong><br>${item?.landing_url ? `<a href="${escapeHtml(item.landing_url)}" target="_blank" rel="noopener noreferrer" class="table-link">${escapeHtml(item.landing_url)}</a>` : "-"}</p>
+          <p><strong>Landing</strong><br>${renderLandingLink(item)}</p>
           <p><strong>Image</strong><br>${item?.image_url ? `<a href="${escapeHtml(item.image_url)}" target="_blank" rel="noopener noreferrer" class="table-link">${escapeHtml(item.image_url)}</a>` : "-"}</p>
           ${item?.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="preview" class="compare-preview-thumb" />` : ""}
         </div>
@@ -492,25 +698,29 @@
       return `<p class="empty-note">${label} 비교 데이터가 없습니다.</p>`;
     }
 
-    const beforeRow = comparedItems.map(item => {
-      return renderSingleSnapshotCard(
-        item.before,
-        `${label} Slot ${item.slot}`,
-        "Before",
-        beforeTime,
-        item
-      );
-    }).join("");
+    const beforeRow = comparedItems
+      .map((item) => {
+        return renderSingleSnapshotCard(
+          item.before,
+          `${label} Slot ${item.slot}`,
+          "Before",
+          beforeTime,
+          item,
+        );
+      })
+      .join("");
 
-    const afterRow = comparedItems.map(item => {
-      return renderSingleSnapshotCard(
-        item.after,
-        `${label} Slot ${item.slot}`,
-        "After",
-        afterTime,
-        item
-      );
-    }).join("");
+    const afterRow = comparedItems
+      .map((item) => {
+        return renderSingleSnapshotCard(
+          item.after,
+          `${label} Slot ${item.slot}`,
+          "After",
+          afterTime,
+          item,
+        );
+      })
+      .join("");
 
     return `
       <div class="snapshot-rows-wrap">
@@ -534,23 +744,34 @@
       return;
     }
 
-    target.innerHTML = history.map((item, index) => {
-      const runTypeLabel =
-        item.run_type === "scan_all" ? "전체 검사" :
-        item.run_type === "scan_all_banner" ? "전체 배너 검사" :
-        item.run_type === "scan_all_kv" ? "전체 KV 검사" :
-        item.run_type === "scan_filtered_banner" ? "선택 대상 배너 검사" :
-        item.run_type === "scan_filtered_kv" ? "선택 대상 KV 검사" :
-        item.run_type === "scan_one_kv" ? "KV 검사" :
-        item.run_type === "scan_one_banner" ? "배너 검사" :
-        item.run_type === "scan_one_all" ? "전체 검사" :
-        item.run_type;
+    target.innerHTML = history
+      .map((item, index) => {
+        const runTypeLabel =
+          item.run_type === "scan_all"
+            ? "전체 검사"
+            : item.run_type === "scan_all_banner"
+              ? "전체 배너 검사"
+              : item.run_type === "scan_all_kv"
+                ? "전체 KV 검사"
+                : item.run_type === "scan_filtered_banner"
+                  ? "선택 대상 배너 검사"
+                  : item.run_type === "scan_filtered_kv"
+                    ? "선택 대상 KV 검사"
+                    : item.run_type === "scan_one_kv"
+                      ? "KV 검사"
+                      : item.run_type === "scan_one_banner"
+                        ? "배너 검사"
+                        : item.run_type === "scan_one_all"
+                          ? "전체 검사"
+                          : item.run_type;
 
-      const changed =
-        (item.kv_compare_summary?.changed || false) ||
-        (item.banner_compare_summary?.changed || false);
+        const changed =
+          item.kv_compare_summary?.changed ||
+          false ||
+          item.banner_compare_summary?.changed ||
+          false;
 
-      return `
+        return `
         <div class="history-item ${index === 0 ? "active-history-item" : ""}" data-code="${code}" data-index="${index}">
           <div class="history-item-top">
             <strong>${escapeHtml(item.created_at)}</strong>
@@ -577,15 +798,16 @@
           </div>
         </div>
       `;
-    }).join("");
+      })
+      .join("");
 
-    target.querySelectorAll(".history-item").forEach(card => {
+    target.querySelectorAll(".history-item").forEach((card) => {
       card.addEventListener("click", () => {
         renderHistoryCompare(code, Number(card.dataset.index));
       });
     });
 
-    target.querySelectorAll(".history-bookmark-btn").forEach(btn => {
+    target.querySelectorAll(".history-bookmark-btn").forEach((btn) => {
       btn.addEventListener("click", (event) => {
         event.stopPropagation();
         openBannerBookmarkModal(btn);
@@ -598,9 +820,11 @@
     const current = history[index];
     if (!current) return;
 
-    document.querySelectorAll(`#historyList-${code} .history-item`).forEach((el, idx) => {
-      el.classList.toggle("active-history-item", idx === index);
-    });
+    document
+      .querySelectorAll(`#historyList-${code} .history-item`)
+      .forEach((el, idx) => {
+        el.classList.toggle("active-history-item", idx === index);
+      });
 
     const summaryEl = document.getElementById(`compareSummary-${code}`);
     const kvSection = document.getElementById(`kvSection-${code}`);
@@ -611,15 +835,23 @@
     summaryEl.classList.remove("hidden");
 
     const runTypeLabel =
-      current.run_type === "scan_all" ? "전체 검사" :
-      current.run_type === "scan_all_banner" ? "전체 배너 검사" :
-      current.run_type === "scan_all_kv" ? "전체 KV 검사" :
-      current.run_type === "scan_filtered_banner" ? "선택 대상 배너 검사" :
-      current.run_type === "scan_filtered_kv" ? "선택 대상 KV 검사" :
-      current.run_type === "scan_one_kv" ? "KV 검사" :
-      current.run_type === "scan_one_banner" ? "배너 검사" :
-      current.run_type === "scan_one_all" ? "전체 검사" :
-      current.run_type;
+      current.run_type === "scan_all"
+        ? "전체 검사"
+        : current.run_type === "scan_all_banner"
+          ? "전체 배너 검사"
+          : current.run_type === "scan_all_kv"
+            ? "전체 KV 검사"
+            : current.run_type === "scan_filtered_banner"
+              ? "선택 대상 배너 검사"
+              : current.run_type === "scan_filtered_kv"
+                ? "선택 대상 KV 검사"
+                : current.run_type === "scan_one_kv"
+                  ? "KV 검사"
+                  : current.run_type === "scan_one_banner"
+                    ? "배너 검사"
+                    : current.run_type === "scan_one_all"
+                      ? "전체 검사"
+                      : current.run_type;
 
     summaryEl.innerHTML = `
       <div class="compare-summary-card">
@@ -631,12 +863,15 @@
 
     if (current.kv_items && current.kv_items.length > 0) {
       kvSection.classList.remove("hidden");
-      const compared = compareItems(current.previous_kv_items || [], current.kv_items || []);
+      const compared = compareItems(
+        current.previous_kv_items || [],
+        current.kv_items || [],
+      );
       kvGrid.innerHTML = renderCompareRows(
         compared,
         "KV",
         current.previous_kv_created_at,
-        current.created_at
+        current.created_at,
       );
     } else {
       kvSection.classList.add("hidden");
@@ -645,12 +880,15 @@
 
     if (current.banner_items && current.banner_items.length > 0) {
       bannerSection.classList.remove("hidden");
-      const compared = compareItems(current.previous_banner_items || [], current.banner_items || []);
+      const compared = compareItems(
+        current.previous_banner_items || [],
+        current.banner_items || [],
+      );
       bannerGrid.innerHTML = renderCompareRows(
         compared,
         "Banner",
         current.previous_banner_created_at,
-        current.created_at
+        current.created_at,
       );
     } else {
       bannerSection.classList.add("hidden");
@@ -660,7 +898,9 @@
 
   async function loadCountryHistory(code, countryDisplay) {
     if (!historyCache[code]) {
-      const res = await fetch(`/api/banner-monitor/history/${encodeURIComponent(code)}`);
+      const res = await fetch(
+        `/api/banner-monitor/history/${encodeURIComponent(code)}`,
+      );
       const data = await res.json();
       if (!res.ok) {
         alert(data.error || "히스토리 조회 중 오류가 발생했습니다.");
@@ -672,15 +912,21 @@
     const inlineRow = document.getElementById(`inline-history-${code}`);
     const isOpen = !inlineRow.classList.contains("hidden");
 
-    document.querySelectorAll(".inline-history-row").forEach(el => el.classList.add("hidden"));
-    document.querySelectorAll(".monitor-target-row").forEach(el => el.classList.remove("active-row"));
+    document
+      .querySelectorAll(".inline-history-row")
+      .forEach((el) => el.classList.add("hidden"));
+    document
+      .querySelectorAll(".monitor-target-row")
+      .forEach((el) => el.classList.remove("active-row"));
 
     if (isOpen) {
       inlineRow.classList.add("hidden");
       return;
     }
 
-    const triggerRow = document.querySelector(`.monitor-target-row[data-code="${code}"]`);
+    const triggerRow = document.querySelector(
+      `.monitor-target-row[data-code="${code}"]`,
+    );
     if (triggerRow) triggerRow.classList.add("active-row");
 
     inlineRow.classList.remove("hidden");
@@ -697,7 +943,7 @@
       const res = await fetch("/api/banner-monitor/run-one", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target_code: code, mode })
+        body: JSON.stringify({ target_code: code, mode }),
       });
 
       const data = await res.json();
@@ -706,7 +952,9 @@
         return;
       }
 
-      alert(`${code} ${mode === "all" ? "전체" : mode.toUpperCase()} 검사가 완료되었습니다.`);
+      alert(
+        `${code} ${mode === "all" ? "전체" : mode.toUpperCase()} 검사가 완료되었습니다.`,
+      );
       window.location.reload();
     } catch (e) {
       console.error(e);
@@ -726,7 +974,7 @@
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload || {})
+        body: JSON.stringify(payload || {}),
       });
 
       const data = await res.json();
@@ -757,7 +1005,7 @@
       triggerBtn.classList.toggle("open");
     });
 
-    document.querySelectorAll(".custom-region-option").forEach(btn => {
+    document.querySelectorAll(".custom-region-option").forEach((btn) => {
       btn.addEventListener("click", () => {
         regionFilter.value = btn.dataset.value || "";
         updateRegionTriggerText();
@@ -775,84 +1023,119 @@
     });
   }
 
-  document.getElementById("runBannerMonitorBtn").addEventListener("click", async (e) => {
-    await runTopAction("/api/banner-monitor/run-all", { mode: "all" }, e.currentTarget, "전체 검사가 완료되었습니다.");
-  });
+  document
+    .getElementById("runBannerMonitorBtn")
+    .addEventListener("click", async (e) => {
+      await runTopAction(
+        "/api/banner-monitor/run-all",
+        { mode: "all" },
+        e.currentTarget,
+        "전체 검사가 완료되었습니다.",
+      );
+    });
 
-  document.getElementById("runBannerAllBtn").addEventListener("click", async (e) => {
-    await runTopAction("/api/banner-monitor/run-all", { mode: "banner" }, e.currentTarget, "전체 배너 검사가 완료되었습니다.");
-  });
+  document
+    .getElementById("runBannerAllBtn")
+    .addEventListener("click", async (e) => {
+      await runTopAction(
+        "/api/banner-monitor/run-all",
+        { mode: "banner" },
+        e.currentTarget,
+        "전체 배너 검사가 완료되었습니다.",
+      );
+    });
 
-  document.getElementById("runKvAllBtn").addEventListener("click", async (e) => {
-    await runTopAction("/api/banner-monitor/run-all", { mode: "kv" }, e.currentTarget, "전체 KV 검사가 완료되었습니다.");
-  });
+  document
+    .getElementById("runKvAllBtn")
+    .addEventListener("click", async (e) => {
+      await runTopAction(
+        "/api/banner-monitor/run-all",
+        { mode: "kv" },
+        e.currentTarget,
+        "전체 KV 검사가 완료되었습니다.",
+      );
+    });
 
-  document.getElementById("runFilteredBannerBtn").addEventListener("click", async (e) => {
-    const targetCodes = getVisibleTargetCodes();
-    if (!targetCodes.length) {
-      alert("현재 필터 조건에 해당하는 국가가 없습니다.");
-      return;
-    }
-    await runTopAction(
-      "/api/banner-monitor/run-filtered",
-      {
-        mode: "banner",
-        target_codes: targetCodes,
-        scope_label: getCurrentScopeLabel()
-      },
-      e.currentTarget,
-      "선택 대상 전체 배너 검사가 완료되었습니다."
-    );
-  });
+  document
+    .getElementById("runFilteredBannerBtn")
+    .addEventListener("click", async (e) => {
+      const targetCodes = getVisibleTargetCodes();
+      if (!targetCodes.length) {
+        alert("현재 필터 조건에 해당하는 국가가 없습니다.");
+        return;
+      }
+      await runTopAction(
+        "/api/banner-monitor/run-filtered",
+        {
+          mode: "banner",
+          target_codes: targetCodes,
+          scope_label: getCurrentScopeLabel(),
+        },
+        e.currentTarget,
+        "선택 대상 전체 배너 검사가 완료되었습니다.",
+      );
+    });
 
-  document.getElementById("runFilteredKvBtn").addEventListener("click", async (e) => {
-    const targetCodes = getVisibleTargetCodes();
-    if (!targetCodes.length) {
-      alert("현재 필터 조건에 해당하는 국가가 없습니다.");
-      return;
-    }
-    await runTopAction(
-      "/api/banner-monitor/run-filtered",
-      {
-        mode: "kv",
-        target_codes: targetCodes,
-        scope_label: getCurrentScopeLabel()
-      },
-      e.currentTarget,
-      "선택 대상 전체 KV 검사가 완료되었습니다."
-    );
-  });
+  document
+    .getElementById("runFilteredKvBtn")
+    .addEventListener("click", async (e) => {
+      const targetCodes = getVisibleTargetCodes();
+      if (!targetCodes.length) {
+        alert("현재 필터 조건에 해당하는 국가가 없습니다.");
+        return;
+      }
+      await runTopAction(
+        "/api/banner-monitor/run-filtered",
+        {
+          mode: "kv",
+          target_codes: targetCodes,
+          scope_label: getCurrentScopeLabel(),
+        },
+        e.currentTarget,
+        "선택 대상 전체 KV 검사가 완료되었습니다.",
+      );
+    });
 
-  document.querySelectorAll(".monitor-run-one-btn").forEach(btn => {
+  document.querySelectorAll(".monitor-run-one-btn").forEach((btn) => {
     btn.addEventListener("click", async (event) => {
       event.stopPropagation();
       await runOneTarget(btn.dataset.code, btn.dataset.mode, btn);
     });
   });
 
-  document.querySelectorAll(".monitor-target-row").forEach(row => {
+  document.querySelectorAll(".monitor-target-row").forEach((row) => {
     row.addEventListener("click", async () => {
       await loadCountryHistory(row.dataset.code, row.dataset.countryDisplay);
     });
   });
 
-  document.getElementById("countrySearch").addEventListener("input", filterMonitorRows);
+  document
+    .getElementById("countrySearch")
+    .addEventListener("input", filterMonitorRows);
 
   restoreFilterState();
   initCustomRegionSelect();
   filterMonitorRows();
 
-  document.querySelectorAll(".banner-bookmark-level-select").forEach(btn => {
+  document.querySelectorAll(".banner-bookmark-level-select").forEach((btn) => {
     btn.addEventListener("click", () => {
       currentBannerBookmarkLevel = Number(btn.dataset.level);
-      document.querySelectorAll(".banner-bookmark-level-select").forEach(el => {
-        el.classList.toggle("selected", el === btn);
-      });
+      document
+        .querySelectorAll(".banner-bookmark-level-select")
+        .forEach((el) => {
+          el.classList.toggle("selected", el === btn);
+        });
     });
   });
 
-  document.getElementById("bannerBookmarkSaveBtn").addEventListener("click", saveBannerBookmark);
-  document.getElementById("bannerBookmarkNoteModalClose").addEventListener("click", closeBannerBookmarkModal);
-  document.getElementById("bannerBookmarkNoteModalBackdrop").addEventListener("click", closeBannerBookmarkModal);
+  document
+    .getElementById("bannerBookmarkSaveBtn")
+    .addEventListener("click", saveBannerBookmark);
+  document
+    .getElementById("bannerBookmarkNoteModalClose")
+    .addEventListener("click", closeBannerBookmarkModal);
+  document
+    .getElementById("bannerBookmarkNoteModalBackdrop")
+    .addEventListener("click", closeBannerBookmarkModal);
 </script>
 {% endblock %}

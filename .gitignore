@@ -8,3 +8,6 @@ app/news_monitor.db
 Thumbs.db
 .DS_Store
 *.zip
+app/news_monitor.db-wal
+app/news_monitor.db-shm
+app/backups/
