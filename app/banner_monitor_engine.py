@@ -20,7 +20,7 @@ from app.scraper import parse_article_content
 # ------------------------------------------------------------------ #
 _thread_local = threading.local()
 
-MAX_WORKERS = 8  # 동시 요청 수. 너무 높으면 대상 서버가 429/403으로 응답할 수 있음.
+MAX_WORKERS = 3  # 동시 요청 수. 너무 높으면 대상 서버가 429/403으로 응답할 수 있음.
 
 
 def _get_session() -> requests.Session:
@@ -38,7 +38,11 @@ def _get_session() -> requests.Session:
         )
         s.mount("https://", adapter)
         s.mount("http://", adapter)
-        s.headers.update({"User-Agent": "Mozilla/5.0"})
+        s.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+        })
         _thread_local.session = s
     return _thread_local.session
 
